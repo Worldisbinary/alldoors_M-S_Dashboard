@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>alldoors — Marketing & Sales Dashboard</title>
+    <meta name="description" content="Real estate marketing attribution: CPL, CPQL, CAC, ROAS, CTR, CVR and conversion funnel analytics.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Patrick+Hand&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --bg:        #FAF7F2;
+            --card:      #FFFFFF;
+            --border:    #E6DFD3;
+            --text:      #2D2926;
+            --muted:     #7E7568;
+            /* Platform colours — vibrant & distinct */
+            --google:    #1A73E8;    /* Google blue */
+            --meta:      #7B2FBE;    /* Meta deep violet */
+            --linkedin:  #057642;    /* LinkedIn dark green */
+            /* Accent palette for KPI cards */
+            --amber:     #B45309;
+            --teal:      #0F766E;
+            --indigo:    #4338CA;
+            --rose:      #9F1239;    /* dark rose, not red */
+            --grey:      #6B7280;
+            --green:     #166534;
+            --font:      'Patrick Hand', cursive;
+            --display:   'Architects Daughter', cursive;
+        }
+
+        * { margin:0; padding:0; box-sizing:border-box; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font);
+            font-size: 1.05rem;
+            -webkit-font-smoothing: antialiased;
+            padding: 2.5rem 1.5rem;
+            min-height: 100vh;
+        }
+
+        .wrap { max-width:1440px; margin:0 auto; display:flex; flex-direction:column; gap:2rem; }
+
+        /* ── Header ─────────────────────────────────────────────── */
+        header {
+            padding-bottom: 1rem;
+            border-bottom: 2px dashed var(--border);
+        }
+        header h1 {
+            font-family: var(--display);
+            font-size: 2.6rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        /* ── KPI Grid ───────────────────────────────────────────── */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 1rem;
+        }
+        @media(max-width:1200px){ .kpi-grid{ grid-template-columns:repeat(3,1fr); } }
+        @media(max-width:768px){  .kpi-grid{ grid-template-columns:repeat(2,1fr); } }
+
+        .kpi {
+            background: var(--card);
+            border: 1.5px solid var(--border);
+            border-radius: 16px;
+            padding: 1.25rem 1.4rem 1.1rem;
+            box-shadow: 0 3px 12px rgba(45,41,38,.04);
+            display: flex; flex-direction:column; gap:.15rem;
+            position: relative; overflow:hidden;
+            transition: transform .2s, box-shadow .2s;
+        }
+        .kpi:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(45,41,38,.09); }
+        .kpi::after {
+            content:'';
+            position:absolute; bottom:0; left:0; right:0;
+            height:3px;
+            background: var(--ac, var(--border));
+            border-radius:0 0 14px 14px;
+        }
+        /* Accent colours per card */
+        .ac-blue    { --ac: var(--google); }
+        .ac-violet  { --ac: var(--meta); }
+        .ac-green   { --ac: var(--linkedin); }
+        .ac-amber   { --ac: var(--amber); }
+        .ac-teal    { --ac: var(--teal); }
+        .ac-indigo  { --ac: var(--indigo); }
+        .ac-rose    { --ac: var(--rose); }
+
+        .kpi-label {
+            font-size: .78rem; font-weight:700;
+            text-transform:uppercase; letter-spacing:.07em;
+            color: var(--muted);
+        }
+        .kpi-desc {
+            font-size: .78rem; color: var(--muted); opacity:.85;
+            line-height:1.3; margin-bottom:.25rem;
+        }
+        .kpi-val {
+            font-family: var(--display);
+            font-size: 1.9rem; font-weight:700;
+            color: var(--text);
+        }
+
+        /* ── Section card ───────────────────────────────────────── */
+        .card {
+            background: var(--card);
+            border: 1.5px solid var(--border);
+            border-radius: 20px;
+            padding: 1.75rem;
+            box-shadow: 0 5px 18px rgba(45,41,38,.03);
+            display:flex; flex-direction:column; gap:1.5rem;
+        }
+        .card-hdr {
+            display:flex; justify-content:space-between; align-items:center;
+            flex-wrap:wrap; gap:.75rem;
+        }
+        .card-title {
+            font-family: var(--display);
+            font-size: 1.4rem; font-weight:600;
+        }
+
+        /* ── Conversion Funnel ──────────────────────────────────── */
+        .funnel-wrap {
+            position:relative;
+            display:flex; flex-direction:row;
+            justify-content:space-between; align-items:stretch;
+            padding:1.5rem 0; gap:.4rem;
+            min-height: 420px;
+        }
+        #funnel-canvas {
+            position:absolute; top:0; left:0;
+            width:100%; height:100%;
+            pointer-events:none; z-index:10;
+        }
+        .stage-col {
+            display:flex; flex-direction:column;
+            align-items:center; justify-content:space-between;
+            flex:1; min-height:380px;
+            position:relative; z-index:2; text-align:center;
+        }
+        /* Top block: name + conv% + count */
+        .stage-top {
+            display:flex; flex-direction:column;
+            align-items:center; gap:.1rem;
+            height:95px; justify-content:flex-end;
+        }
+        .stage-name {
+            font-size:.88rem; font-weight:700;
+            color:var(--text); line-height:1.2; max-width:120px;
+        }
+        .stage-conv {
+            font-size:.75rem; font-weight:600;
+            color:var(--muted);
+            background:#F3F0EB;
+            border:1px solid var(--border);
+            border-radius:20px; padding:.1rem .55rem;
+        }
+        .stage-count {
+            font-family:var(--display);
+            font-size:1.2rem; font-weight:700;
+            color:var(--text);
+        }
+        /* Center bar */
+        .stage-bar-wrap {
+            display:flex; justify-content:center; align-items:center;
+            position:relative; height:160px; width:100%;
+        }
+        .stage-bar {
+            width:26px;
+            background:linear-gradient(180deg,#B45309 0%,#FDE68A 100%);
+            border-radius:6px 6px 0 0;
+        }
+        .stage-conn {
+            position:absolute; top:50%; left:60%;
+            width:40%; height:2px;
+            background:var(--border);
+            transform:translateY(-50%);
+        }
+        /* Bottom block */
+        .stage-bot {
+            display:flex; flex-direction:column;
+            align-items:center; gap:.4rem;
+            height:80px; justify-content:flex-start; padding-top:.3rem;
+        }
+        .trash-wrap { display:flex; flex-direction:column; align-items:center; gap:.05rem; opacity:.65; }
+        .trash-icon  { font-size:1.35rem; }
+        .trash-count { font-size:.78rem; color:var(--grey); }
+        .success-box {
+            display:flex; align-items:center; gap:.3rem;
+            font-size:.9rem; font-weight:700; color:var(--green);
+        }
+
+        /* ── Charts ─────────────────────────────────────────────── */
+        .chart-controls { display:flex; gap:.4rem; align-items:center; flex-wrap:wrap; }
+
+        .metric-sel {
+            font-family:var(--font); font-size:.92rem;
+            border:1.5px solid var(--border); border-radius:10px;
+            padding:.32rem .9rem; background:var(--bg);
+            color:var(--text); cursor:pointer; outline:none;
+            transition:border-color .2s;
+            appearance:none; -webkit-appearance:none;
+            background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237E7568' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+            background-repeat:no-repeat; background-position:right .7rem center;
+            padding-right:2rem;
+        }
+        .metric-sel:focus { border-color:var(--amber); }
+
+        .btn {
+            font-family:var(--font); font-size:.88rem;
+            border:1.5px solid var(--border); border-radius:10px;
+            padding:.28rem .75rem; background:var(--bg);
+            color:var(--muted); cursor:pointer; transition:all .2s;
+        }
+        .btn:hover, .btn.on {
+            background:var(--text); color:#FFF; border-color:var(--text);
+        }
+
+        .chart-box { position:relative; height:260px; }
+
+        /* ── Tables ─────────────────────────────────────────────── */
+        .tbl-wrap { overflow-x:auto; }
+        table { width:100%; border-collapse:collapse; font-size:.97rem; }
+        th {
+            text-align:left; padding:.65rem .9rem;
+            font-size:.75rem; text-transform:uppercase;
+            letter-spacing:.06em; color:var(--muted);
+            border-bottom:2px solid var(--border); white-space:nowrap;
+        }
+        td {
+            padding:.75rem .9rem;
+            border-bottom:1px solid var(--border);
+            vertical-align:middle;
+        }
+        tr:last-child td { border-bottom:none; }
+        tr:hover td { background:#F8F5F0; }
+
+        .plat-chip { display:flex; align-items:center; gap:.55rem; font-weight:700; }
+        .dot {
+            width:9px; height:9px; border-radius:50%; flex-shrink:0;
+        }
+        .dot-g { background:var(--google);   box-shadow:0 0 5px var(--google); }
+        .dot-m { background:var(--meta);     box-shadow:0 0 5px var(--meta); }
+        .dot-l { background:var(--linkedin); box-shadow:0 0 5px var(--linkedin); }
+
+        .tr  { text-align:right; }
+        .fw  { font-family:var(--display); }
+        .good { color:var(--green);  font-weight:700; }
+        .mid  { color:var(--amber);  font-weight:700; }
+
+        .stack { display:flex; flex-direction:column; gap:1.5rem; }
+    </style>
+</head>
+<body>
+<div class="wrap">
+
+    <!-- ── Header ── -->
+    <header>
+        <h1>alldoors</h1>
+    </header>
+
+    <!-- ── KPI Grid ── -->
+    <div class="kpi-grid">
+
+        <div class="kpi ac-blue">
+            <span class="kpi-label">Total Leads</span>
+            <span class="kpi-desc">enquiries captured across all channels</span>
+            <span class="kpi-val" id="v-leads">0</span>
+        </div>
+
+        <div class="kpi ac-violet">
+            <span class="kpi-label">CPL — Cost per Lead</span>
+            <span class="kpi-desc">spend ÷ total leads</span>
+            <span class="kpi-val" id="v-cpl">₹0</span>
+        </div>
+
+        <div class="kpi ac-teal">
+            <span class="kpi-label">CPQL — Cost per Qualified Lead</span>
+            <span class="kpi-desc">spend ÷ leads who visited site / gave EOI</span>
+            <span class="kpi-val" id="v-cpql">₹0</span>
+        </div>
+
+        <div class="kpi ac-amber">
+            <span class="kpi-label">CAC — Customer Acq. Cost</span>
+            <span class="kpi-desc">spend ÷ signed bookings</span>
+            <span class="kpi-val" id="v-cac">₹0</span>
+        </div>
+
+        <div class="kpi ac-green">
+            <span class="kpi-label">ROAS</span>
+            <span class="kpi-desc">revenue ÷ ad spend — return per ₹ spent</span>
+            <span class="kpi-val" id="v-roas">0x</span>
+        </div>
+
+        <div class="kpi ac-indigo">
+            <span class="kpi-label">CTR — Click-Through Rate</span>
+            <span class="kpi-desc">clicks ÷ impressions — how often ads get clicked</span>
+            <span class="kpi-val" id="v-ctr">0%</span>
+        </div>
+
+        <div class="kpi ac-violet">
+            <span class="kpi-label">CVR — Click-to-Lead Rate</span>
+            <span class="kpi-desc">leads ÷ clicks — how often a click becomes a lead</span>
+            <span class="kpi-val" id="v-cvr">0%</span>
+        </div>
+
+        <div class="kpi ac-teal">
+            <span class="kpi-label">Quality Rate</span>
+            <span class="kpi-desc">qualified leads ÷ total — share of serious buyers</span>
+            <span class="kpi-val" id="v-qr">0%</span>
+        </div>
+
+        <div class="kpi ac-amber">
+            <span class="kpi-label">Time to Close</span>
+            <span class="kpi-desc">avg days from first inquiry to booking confirmed</span>
+            <span class="kpi-val" id="v-ttc">0 d</span>
+        </div>
+
+        <div class="kpi">
+            <span class="kpi-label">Ad Spend</span>
+            <span class="kpi-desc">total media spend (Google + Meta + LinkedIn)</span>
+            <span class="kpi-val" id="v-spend">₹0</span>
+        </div>
+
+        <div class="kpi ac-green">
+            <span class="kpi-label">Revenue</span>
+            <span class="kpi-desc">brokerage commission earned from closures</span>
+            <span class="kpi-val" id="v-revenue">₹0</span>
+        </div>
+
+        <div class="kpi ac-blue">
+            <span class="kpi-label">Closures</span>
+            <span class="kpi-desc">booking confirmations — customers won</span>
+            <span class="kpi-val" id="v-bookings">0</span>
+        </div>
+
+        <div class="kpi ac-indigo">
+            <span class="kpi-label">Qualified Leads</span>
+            <span class="kpi-desc">reached site visit, EOI or booking stage</span>
+            <span class="kpi-val" id="v-qual">0</span>
+        </div>
+
+        <div class="kpi">
+            <span class="kpi-label">Total Clicks</span>
+            <span class="kpi-desc">ad clicks received across all platforms</span>
+            <span class="kpi-val" id="v-clicks">0</span>
+        </div>
+
+        <div class="kpi">
+            <span class="kpi-label">Impressions</span>
+            <span class="kpi-desc">total ad views across all platforms</span>
+            <span class="kpi-val" id="v-imps">0</span>
+        </div>
+
+    </div>
+
+    <div class="stack">
+
+        <!-- ── Conversion Funnel ── -->
+        <div class="card">
+            <div class="card-hdr">
+                <span class="card-title">Conversion Funnel</span>
+            </div>
+            <div class="funnel-wrap" id="funnel-wrap">
+                <canvas id="funnel-canvas"></canvas>
+
+                {% for s in funnel_data %}
+                <div class="stage-col" id="sc-{{ forloop.counter0 }}">
+
+                    <!-- Name + conv% + count stacked -->
+                    <div class="stage-top">
+                        <span class="stage-name">{{ s.stage }}</span>
+                        <span class="stage-conv">{{ s.conv_original_pct }}% of original</span>
+                        <span class="stage-count" id="cnt-{{ forloop.counter0 }}">0</span>
+                    </div>
+
+                    <!-- Bar -->
+                    <div class="stage-bar-wrap">
+                        <div class="stage-bar" id="bar-{{ forloop.counter0 }}"></div>
+                        {% if not forloop.last %}<div class="stage-conn"></div>{% endif %}
+                    </div>
+
+                    <!-- Drop / success -->
+                    <div class="stage-bot">
+                        {% if not forloop.last %}
+                        <div class="trash-wrap" id="trash-{{ forloop.counter0 }}">
+                            <span class="trash-icon">🗑️</span>
+                            <span class="trash-count" id="tlost-{{ forloop.counter0 }}">0</span>
+                        </div>
+                        {% else %}
+                        <div class="success-box">🏆 {{ s.conv_original_pct }}% Conv.</div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- ── Leads Over Time ── -->
+        <div class="card">
+            <div class="card-hdr">
+                <span class="card-title">Leads Acquired Over Time</span>
+                <div class="chart-controls">
+                    <button class="btn on" id="lb-all"    onclick="leadsSwitch('all')">All</button>
+                    <button class="btn"    id="lb-google"  onclick="leadsSwitch('google')">Google</button>
+                    <button class="btn"    id="lb-meta"    onclick="leadsSwitch('meta')">Meta</button>
+                    <button class="btn"    id="lb-li"      onclick="leadsSwitch('linkedin')">LinkedIn</button>
+                </div>
+            </div>
+            <div class="chart-box"><canvas id="leads-chart"></canvas></div>
+        </div>
+
+        <!-- ── Metric Explorer ── -->
+        <div class="card">
+            <div class="card-hdr">
+                <span class="card-title">Metric Explorer</span>
+                <div class="chart-controls">
+                    <select class="metric-sel" id="metric-sel" onchange="metricSwitch(this.value)">
+                        <optgroup label="Cost Efficiency">
+                            <option value="cpl">CPL — Cost per Lead</option>
+                            <option value="cpql">CPQL — Cost per Qualified Lead</option>
+                            <option value="cac">CAC — Cost per Customer Won</option>
+                        </optgroup>
+                        <optgroup label="Return">
+                            <option value="roas">ROAS — Return on Ad Spend</option>
+                            <option value="revenue">Revenue (daily)</option>
+                        </optgroup>
+                        <optgroup label="Ad Engagement">
+                            <option value="ctr">CTR — Click-Through Rate (%)</option>
+                            <option value="cvr">CVR — Click-to-Lead Rate (%)</option>
+                            <option value="clicks">Clicks (daily)</option>
+                            <option value="impressions">Impressions (daily)</option>
+                        </optgroup>
+                        <optgroup label="Volume">
+                            <option value="spend">Ad Spend (daily)</option>
+                            <option value="bookings">Bookings (daily)</option>
+                        </optgroup>
+                    </select>
+                    <button class="btn on" id="mb-all"    onclick="metricPlatSwitch('all')">All</button>
+                    <button class="btn"    id="mb-google"  onclick="metricPlatSwitch('google')">Google</button>
+                    <button class="btn"    id="mb-meta"    onclick="metricPlatSwitch('meta')">Meta</button>
+                    <button class="btn"    id="mb-li"      onclick="metricPlatSwitch('linkedin')">LinkedIn</button>
+                </div>
+            </div>
+            <div class="chart-box"><canvas id="metric-chart"></canvas></div>
+        </div>
+
+        <!-- ── Channel Performance Table ── -->
+        <div class="card">
+            <div class="card-hdr">
+                <span class="card-title">Channel Performance</span>
+            </div>
+            <div class="tbl-wrap">
+                <table>
+                    <thead><tr>
+                        <th>Source</th>
+                        <th class="tr">Spend</th>
+                        <th class="tr">Revenue</th>
+                        <th class="tr">ROAS</th>
+                        <th class="tr">Leads</th>
+                        <th class="tr">EOIs</th>
+                        <th class="tr">Closures</th>
+                        <th class="tr">CPL</th>
+                        <th class="tr">CPQL</th>
+                        <th class="tr">CAC</th>
+                        <th class="tr">CTR</th>
+                        <th class="tr">CVR</th>
+                        <th class="tr">Quality %</th>
+                    </tr></thead>
+                    <tbody>
+                        {% for c in channel_data %}
+                        <tr>
+                            <td>
+                                <div class="plat-chip">
+                                    <span class="dot {% if c.platform == 'Google' %}dot-g{% elif c.platform == 'Meta' %}dot-m{% else %}dot-l{% endif %}"></span>
+                                    {{ c.platform }}
+                                </div>
+                            </td>
+                            <td class="fmt tr" data-v="{{ c.spend }}">₹–</td>
+                            <td class="fmt tr" data-v="{{ c.revenue }}">₹–</td>
+                            <td class="tr fw {% if c.roas >= 3 %}good{% elif c.roas >= 1.5 %}mid{% endif %}">{{ c.roas|floatformat:2 }}x</td>
+                            <td class="tr">{{ c.leads }}</td>
+                            <td class="tr">{{ c.eois }}</td>
+                            <td class="tr">{{ c.bookings }}</td>
+                            <td class="fmt tr" data-v="{{ c.cpl }}">₹–</td>
+                            <td class="fmt tr" data-v="{{ c.cpql }}">₹–</td>
+                            <td class="fmt tr" data-v="{{ c.cac }}">₹–</td>
+                            <td class="tr">{{ c.ctr }}%</td>
+                            <td class="tr">{{ c.cvr }}%</td>
+                            <td class="tr">{{ c.quality_rate }}%</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ── Project Performance Table ── -->
+        <div class="card">
+            <div class="card-hdr">
+                <span class="card-title">Project & Property Performance</span>
+            </div>
+            <div class="tbl-wrap">
+                <table>
+                    <thead><tr>
+                        <th>Project</th>
+                        <th>Location</th>
+                        <th class="tr">Leads</th>
+                        <th class="tr">Closures</th>
+                        <th class="tr">Spend</th>
+                        <th class="tr">Revenue</th>
+                        <th class="tr">ROAS</th>
+                        <th class="tr">CPL</th>
+                        <th class="tr">CAC</th>
+                        <th class="tr">Quality %</th>
+                    </tr></thead>
+                    <tbody>
+                        {% for p in project_data %}
+                        <tr>
+                            <td style="font-weight:700;">{{ p.name }}</td>
+                            <td>{{ p.location }}</td>
+                            <td class="tr">{{ p.leads }}</td>
+                            <td class="tr">{{ p.bookings }}</td>
+                            <td class="fmt tr" data-v="{{ p.spend }}">₹–</td>
+                            <td class="fmt tr" data-v="{{ p.revenue }}">₹–</td>
+                            <td class="tr fw {% if p.roas >= 3 %}good{% elif p.roas >= 1.5 %}mid{% endif %}">{{ p.roas|floatformat:2 }}x</td>
+                            <td class="fmt tr" data-v="{{ p.cpl }}">₹–</td>
+                            <td class="fmt tr" data-v="{{ p.cac }}">₹–</td>
+                            <td class="tr">{{ p.quality_rate }}%</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{{ kpis|json_script:"j-kpis" }}
+{{ funnel_data|json_script:"j-funnel" }}
+{{ chart_data|json_script:"j-chart" }}
+
+<script>
+const kpis      = JSON.parse(document.getElementById('j-kpis').textContent);
+const funnel    = JSON.parse(document.getElementById('j-funnel').textContent);
+const cd        = JSON.parse(document.getElementById('j-chart').textContent);
+
+Chart.defaults.font.family = "'Patrick Hand', cursive";
+Chart.defaults.font.size   = 14;
+
+/* ─ palette ─ */
+const PAL = {
+    google:   { line:'#1A73E8', fill:'rgba(26,115,232,0.07)' },
+    meta:     { line:'#7B2FBE', fill:'rgba(123,47,190,0.07)' },
+    linkedin: { line:'#057642', fill:'rgba(5,118,66,0.07)' },
+    total:    { line:'#B45309', fill:'rgba(180,83,9,0.06)' },
+};
+
+/* ─ currency ─ */
+function fmtINR(v) {
+    if (v >= 10000000) return '₹' + (v/10000000).toFixed(2) + 'Cr';
+    if (v >= 100000)   return '₹' + (v/100000).toFixed(2) + 'L';
+    if (v >= 1000)     return '₹' + (v/1000).toFixed(1) + 'K';
+    if (v === 0)       return '₹0';
+    return '₹' + v.toFixed(0);
+}
+
+/* ─ counter animation ─ */
+function count(el, end, dur=1400, dec=0, pre='', suf='', cur=false) {
+    let t0 = null;
+    const step = ts => {
+        if (!t0) t0 = ts;
+        const p = Math.min((ts-t0)/dur, 1), v = p*end;
+        el.textContent = cur ? fmtINR(v) : pre + v.toLocaleString(undefined,{minimumFractionDigits:dec,maximumFractionDigits:dec}) + suf;
+        if (p < 1) requestAnimationFrame(step);
+        else el.textContent = cur ? fmtINR(end) : pre + end.toLocaleString(undefined,{minimumFractionDigits:dec,maximumFractionDigits:dec}) + suf;
+    };
+    requestAnimationFrame(step);
+}
+
+/* ─ chart helpers ─ */
+function ds(label, data, key) {
+    const c = PAL[key] || PAL.total;
+    return { label, data, borderColor:c.line, backgroundColor:c.fill,
+             borderWidth:2.5, pointRadius:0, pointHoverRadius:4, tension:.38, fill:true };
+}
+
+function chartOpts(yFmt) {
+    return {
+        responsive:true, maintainAspectRatio:false,
+        interaction:{ mode:'index', intersect:false },
+        plugins:{
+            legend:{ display:true, position:'top',
+                labels:{ color:'#2D2926', usePointStyle:true, padding:16,
+                    font:{ family:'Patrick Hand', size:13 } } },
+            tooltip:{
+                backgroundColor:'#FFF', titleColor:'#2D2926', bodyColor:'#2D2926',
+                borderColor:'#E6DFD3', borderWidth:1, padding:10,
+                titleFont:{ family:'Patrick Hand', size:13 },
+                bodyFont:{ family:'Patrick Hand', size:13 },
+                callbacks:{ label: ctx => (ctx.dataset.label||'') + ': ' + (yFmt?yFmt(ctx.parsed.y):ctx.parsed.y.toLocaleString()) }
+            }
+        },
+        scales:{
+            x:{ grid:{ display:false }, ticks:{ color:'#7E7568', maxTicksLimit:10 } },
+            y:{ grid:{ color:'#E6DFD3' }, ticks:{ color:'#7E7568', callback:v=>yFmt?yFmt(v):v.toLocaleString() } }
+        }
+    };
+}
+
+/* ── LEADS CHART ── */
+let leadsChart, leadsPlat='all';
+function leadsDS(plat) {
+    if (plat==='all') return [ds('Google',cd.leads.Google,'google'), ds('Meta',cd.leads.Meta,'meta'), ds('LinkedIn',cd.leads.LinkedIn,'linkedin')];
+    const M={google:'Google',meta:'Meta',linkedin:'LinkedIn'};
+    return [ds(M[plat], cd.leads[M[plat]], plat)];
+}
+function initLeads() {
+    leadsChart = new Chart(document.getElementById('leads-chart').getContext('2d'),
+        { type:'line', data:{ labels:cd.dates, datasets:leadsDS('all') }, options:chartOpts(null) });
+}
+function leadsSwitch(p) {
+    leadsPlat = p;
+    leadsChart.data.datasets = leadsDS(p);
+    leadsChart.update();
+    ['all','google','meta','li'].forEach(k=>{
+        const b=document.getElementById('lb-'+k);
+        if(b) b.classList.toggle('on', (k==='li'?'linkedin':k)===p);
+    });
+}
+
+/* ── METRIC CHART ── */
+const METRIC_CFG = {
+    cpl:         { get:(p)=>cd['cpl_'+p],     isCur:true,  suf:'',  label:'CPL (₹)' },
+    cpql:        { get:(p)=>{ /* rolling from chart_data not stored, use cpl as proxy */
+                               const ss=cd.spend[cap(p)], ql=cd.leads[cap(p)];
+                               /* CPQL not in chartData, fall back to spend/leads *2 approx */
+                               return cd['cpl_'+p].map(v=>v*2);
+                             }, isCur:true, suf:'', label:'CPQL (₹, est.)' },
+    roas:        { get:(p)=>cd['roas_'+p],    isCur:false, suf:'x', label:'ROAS' },
+    cac:         { get:(p)=>cd['cac_'+p],     isCur:true,  suf:'',  label:'CAC (₹)' },
+    ctr:         { get:(p)=>cd['ctr_'+p],     isCur:false, suf:'%', label:'CTR (%)' },
+    cvr:         { get:(p)=>cd['cvr_'+p],     isCur:false, suf:'%', label:'CVR (%)' },
+    spend:       { get:(p)=>cd.spend[cap(p)], isCur:true,  suf:'',  label:'Ad Spend (₹)' },
+    revenue:     { get:(p)=>cd.revenue[cap(p)],isCur:true, suf:'',  label:'Revenue (₹)' },
+    clicks:      { get:(p)=>cd.clicks[cap(p)],isCur:false, suf:'',  label:'Clicks' },
+    impressions: { get:(p)=>cd.impressions[cap(p)], isCur:false, suf:'', label:'Impressions' },
+    bookings:    { get:(p)=>cd.bookings[cap(p)],isCur:false, suf:'', label:'Bookings' },
+};
+function cap(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+
+let metricChart, curMetric='cpl', metricPlat='all';
+function metricGetYFmt(metric) {
+    const cfg=METRIC_CFG[metric];
+    if (cfg.isCur) return fmtINR;
+    if (cfg.suf==='%') return v=>v.toFixed(2)+'%';
+    if (cfg.suf==='x') return v=>v.toFixed(2)+'x';
+    return null;
+}
+function metricGetDS(metric, plat) {
+    const cfg = METRIC_CFG[metric];
+    if (plat==='all') return [
+        ds('Google',   cfg.get('google'),   'google'),
+        ds('Meta',     cfg.get('meta'),     'meta'),
+        ds('LinkedIn', cfg.get('linkedin'), 'linkedin'),
+    ];
+    const M={google:'Google',meta:'Meta',linkedin:'LinkedIn'};
+    return [ds(M[plat], cfg.get(plat), plat)];
+}
+function initMetric() {
+    const yFmt = metricGetYFmt(curMetric);
+    metricChart = new Chart(document.getElementById('metric-chart').getContext('2d'),
+        { type:'line', data:{ labels:cd.dates, datasets:metricGetDS(curMetric,'all') }, options:chartOpts(yFmt) });
+}
+function metricSwitch(metric) {
+    curMetric = metric;
+    const yFmt = metricGetYFmt(metric);
+    metricChart.data.datasets = metricGetDS(metric, metricPlat);
+    metricChart.options.scales.y.ticks.callback = v=>yFmt?yFmt(v):v.toLocaleString();
+    metricChart.options.plugins.tooltip.callbacks.label = ctx =>
+        (ctx.dataset.label||'')+': '+(yFmt?yFmt(ctx.parsed.y):ctx.parsed.y.toLocaleString());
+    metricChart.update();
+}
+function metricPlatSwitch(plat) {
+    metricPlat = plat;
+    metricChart.data.datasets = metricGetDS(curMetric, plat);
+    metricChart.update();
+    ['all','google','meta','li'].forEach(k=>{
+        const b=document.getElementById('mb-'+k);
+        if(b) b.classList.toggle('on', (k==='li'?'linkedin':k)===plat);
+    });
+}
+
+/* ── FUNNEL BARS ── */
+function initBars() {
+    const max = funnel[0]?.count || 1;
+    funnel.forEach((f,i)=>{
+        const bar = document.getElementById('bar-'+i);
+        if (!bar) return;
+        bar.style.height = Math.max(8, Math.round(f.count/max*140)) + 'px';
+    });
+}
+
+/* ── FUNNEL ANIMATION ── */
+function initFunnel() {
+    const canvas = document.getElementById('funnel-canvas');
+    const wrap   = document.getElementById('funnel-wrap');
+    const r      = wrap.getBoundingClientRect();
+    canvas.width  = r.width;
+    canvas.height = r.height;
+    const ctx = canvas.getContext('2d');
+
+    const cols = funnel.map((_,i)=>{
+        const col  = document.getElementById('sc-'+i);
+        if (!col) return null;
+        const cr = col.getBoundingClientRect();
+        return { x: cr.left - r.left + cr.width/2, barTop: cr.top - r.top + 95 };
+    }).filter(Boolean);
+
+    const COLORS = ['#1A73E8','#7B2FBE','#057642'];
+    const dots = [];
+
+    const spawn = () => {
+        const plat = Math.floor(Math.random()*3);
+        dots.push({ x:cols[0].x+(Math.random()-.5)*18, y:cols[0].barTop,
+                    plat, stage:0, vx:0, vy:0, falling:false, done:false });
+    };
+
+    const draw = () => {
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        dots.forEach(d=>{
+            if (d.done) return;
+            if (d.falling) {
+                d.vy += 0.22; d.y += d.vy;
+                if (d.y > canvas.height+20) d.done = true;
+            } else {
+                const next = d.stage+1;
+                if (next >= cols.length) { d.done=true; return; }
+                const tx = cols[next].x, dx = tx - d.x;
+                if (Math.abs(dx) < 2) {
+                    d.x = tx; d.stage = next;
+                    const sd = funnel[d.stage];
+                    if (Math.random() < (sd ? sd.drop_pct/100 : 0) || d.stage >= cols.length-1) {
+                        d.falling = true; d.vy = 0.4;
+                    }
+                } else { d.x += dx*0.06; }
+            }
+            ctx.beginPath();
+            ctx.arc(d.x, d.y, 3, 0, Math.PI*2);
+            ctx.fillStyle = COLORS[d.plat];
+            ctx.globalAlpha = 0.78;
+            ctx.fill();
+            ctx.globalAlpha = 1;
+        });
+        while(dots.length > 180) dots.shift();
+        requestAnimationFrame(draw);
+    };
+
+    setInterval(spawn, 200);
+    draw();
+}
+
+/* ── INIT ── */
+window.addEventListener('DOMContentLoaded', ()=>{
+    const D = 1400;
+    count(document.getElementById('v-leads'),    kpis.total_leads,       D);
+    count(document.getElementById('v-spend'),    kpis.total_spend,       D, 0,'','',true);
+    count(document.getElementById('v-revenue'),  kpis.total_revenue,     D, 0,'','',true);
+    count(document.getElementById('v-bookings'), kpis.bookings_count,    D);
+    count(document.getElementById('v-qual'),     kpis.qualified_leads,   D);
+    count(document.getElementById('v-cpl'),      kpis.cpl,               D, 0,'','',true);
+    count(document.getElementById('v-cpql'),     kpis.cpql,              D, 0,'','',true);
+    count(document.getElementById('v-cac'),      kpis.cac,               D, 0,'','',true);
+    count(document.getElementById('v-roas'),     kpis.roas,              D, 2,'','x');
+    count(document.getElementById('v-qr'),       kpis.quality_rate,      D, 1,'','%');
+    count(document.getElementById('v-ctr'),      kpis.overall_ctr,       D, 2,'','%');
+    count(document.getElementById('v-cvr'),      kpis.overall_cvr,       D, 2,'','%');
+    count(document.getElementById('v-ttc'),      kpis.avg_time_to_close, D, 1,'','  days avg');
+    count(document.getElementById('v-clicks'),   kpis.total_clicks,      D);
+    count(document.getElementById('v-imps'),     kpis.total_impressions, D);
+
+    funnel.forEach((f,i)=>{
+        const cel = document.getElementById('cnt-'+i);
+        if (cel) count(cel, f.count, D);
+        const tel = document.getElementById('tlost-'+i);
+        if (tel) setTimeout(()=>count(tel, f.lost_count, D-200), 200);
+    });
+
+    /* Format all currency cells */
+    document.querySelectorAll('.fmt').forEach(el=>{
+        el.textContent = fmtINR(parseFloat(el.getAttribute('data-v')));
+    });
+
+    initBars();
+    initFunnel();
+    initLeads();
+    initMetric();
+});
+</script>
+</body>
+</html>
