@@ -115,9 +115,10 @@ class Command(BaseCommand):
                     'Property Changed': 0.08, 'Visit Dropped': 0.07,
                 })
             elif stage == 'Site Visited':
-                status = weighted_choice({
-                    'Visit Unsuccessful': 0.5, 'Requirement Collected': 0.3, 'Property Changed': 0.2,
-                })
+                # A completed visit must never be downgraded back to a Potential-tier
+                # status (Requirement Collected / Property Changed) — that would tag
+                # a lead 'Potential' despite the CRM stage showing the visit happened.
+                status = weighted_choice({'Visit Unsuccessful': 0.5, '': 0.5})
             elif stage == 'EOI Collected':
                 status = weighted_choice({'': 0.6, 'Eoi Dropped': 0.25, 'Booking Dropped': 0.15})
             else:  # Booking Confirmed
