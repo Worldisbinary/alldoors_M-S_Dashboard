@@ -101,8 +101,7 @@ def dashboard_view(request):
     # into Cold (not interested) or Potential (details shared) -> Hot (site visit)
     # -> Super Hot (EOI/booking) -> Booking Confirmed.
     leads_generated = total_leads
-    contacted       = leads_qs.filter(call_status='Picked').count()
-    rnr_count       = leads_qs.filter(call_status='RNR').count()
+    contacted       = leads_qs.exclude(tag='No Tag').count()
     cold_count      = leads_qs.filter(tag='Cold').count()
     potential_plus  = leads_qs.filter(tag__in=['Potential', 'Hot', 'Super Hot']).count()
     hot_plus        = leads_qs.filter(tag__in=['Hot', 'Super Hot']).count()
