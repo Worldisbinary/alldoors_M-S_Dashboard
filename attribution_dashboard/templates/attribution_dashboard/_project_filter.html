@@ -1,9 +1,0 @@
-<div class="project-filter">
-    <span class="pf-label">Project</span>
-    <select id="{{ select_id }}" class="metric-sel" onchange="location.href = this.value ? ('?project=' + this.value) : location.pathname">
-        <option value="">All Projects</option>
-        {% for p in projects %}
-        <option value="{{ p.id }}" {% if selected_project and selected_project.id == p.id %}selected{% endif %}>{{ p.name }}</option>
-        {% endfor %}
-    </select>
-</div>

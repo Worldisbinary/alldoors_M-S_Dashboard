@@ -1,3 +1,4 @@
+from collections import defaultdict
 from django.shortcuts import render
 from django.db.models import Sum, Count
 import datetime
@@ -7,18 +8,36 @@ QUALIFIED_STAGES = ['Site Visited', 'EOI Collected', 'Booking Confirmed']
 CHANNELS = ['Google', 'Meta', 'LinkedIn', 'WhatsApp/SMS', 'Alldoors Website', 'Data Calling Team']
 ORGANIC_CHANNELS = ['WhatsApp/SMS', 'Alldoors Website', 'Data Calling Team']
 
-def dashboard_view(request):
-    end_date   = datetime.date(2026, 7, 17)
-    start_date = end_date - datetime.timedelta(days=90)
+# (key, label, days-back). 'all' covers the full 90-day seeded window.
+RANGE_PRESETS = [
+    ('7d',  'Last 7 Days',   7),
+    ('14d', 'Last 14 Days',  14),
+    ('1m',  'Last Month',    30),
+    ('6m',  'Last 6 Months', 180),
+    ('1y',  'Last Year',     365),
+    ('all', 'All Time',      None),
+]
+RANGE_DAYS = {key: days for key, _, days in RANGE_PRESETS}
 
-    # ── 0. Project filter ───────────────────────────────────────────────────
+def dashboard_view(request):
+    end_date  = datetime.date(2026, 7, 17)
+    data_start = end_date - datetime.timedelta(days=90)
+
+    # ── 0. Project + Timeline filters ───────────────────────────────────────
     projects = Project.objects.all()
     selected_project = projects.filter(pk=request.GET.get('project')).first()
 
-    leads_qs         = Lead.objects.all()
-    campaigns_qs      = AdCampaign.objects.all()
-    bookings_qs       = Booking.objects.all()
-    stage_history_qs  = LeadStageHistory.objects.all()
+    selected_range = request.GET.get('range', 'all')
+    if selected_range not in RANGE_DAYS:
+        selected_range = 'all'
+    range_days = RANGE_DAYS[selected_range]
+    start_date = data_start if range_days is None else max(data_start, end_date - datetime.timedelta(days=range_days - 1))
+    selected_range_label = next(label for key, label, _ in RANGE_PRESETS if key == selected_range)
+
+    leads_qs         = Lead.objects.filter(created_date__range=(start_date, end_date))
+    campaigns_qs      = AdCampaign.objects.filter(date__range=(start_date, end_date))
+    bookings_qs       = Booking.objects.filter(booking_date__range=(start_date, end_date))
+    stage_history_qs  = LeadStageHistory.objects.filter(date_entered__range=(start_date, end_date))
 
     if selected_project:
         leads_qs         = leads_qs.filter(project=selected_project)
@@ -92,6 +111,20 @@ def dashboard_view(request):
     def conv_pct(n):
         return round(n / leads_generated * 100, 1) if leads_generated > 0 else 0.0
 
+    # Lead Status breakdown per Tag, for the Sankey-style fan-out under each
+    # funnel column — "these leads are in these statuses".
+    tag_status_groups = defaultdict(list)
+    for status, tag_name in Lead.STATUS_TAG_MAP.items():
+        tag_status_groups[tag_name].append(status)
+
+    def status_breakdown(tag_name):
+        rows = [
+            {'name': status, 'count': leads_qs.filter(tag=tag_name, lead_status=status).count()}
+            for status in tag_status_groups.get(tag_name, [])
+        ]
+        rows = [r for r in rows if r['count'] > 0]
+        return sorted(rows, key=lambda r: -r['count'])
+
     # Each column carries both the Tag and the matching CRM Lead Stage(s), so the
     # single funnel below shows Marketing -> Leads -> Sales Call -> Tag -> Stage
     # exactly as described: RNR (not picked) -> No Tag / follow-up; Picked + not
@@ -102,36 +135,41 @@ def dashboard_view(request):
             'stage': 'Leads Generated', 'stage_note': 'Not Yet Connected',
             'count': leads_generated,
             'lost_count': leads_generated - contacted, 'lost_label': 'No Tag — RNR / Follow-up',
+            'status_breakdown': status_breakdown('No Tag'),
             'conv_original_pct': conv_pct(leads_generated),
         },
         {
             'stage': 'Contacted (Picked Up)', 'stage_note': 'Sales Call Outcome',
             'count': contacted,
             'lost_count': cold_count, 'lost_label': 'Cold — Not Interested',
+            'status_breakdown': status_breakdown('Cold'),
             'conv_original_pct': conv_pct(contacted),
         },
         {
             'stage': 'Potential', 'stage_note': 'Lead Registered / Initial Contacted',
             'count': potential_plus,
             'lost_count': potential_plus - hot_plus, 'lost_label': 'Stalled — No Site Visit',
+            'status_breakdown': status_breakdown('Potential'),
             'conv_original_pct': conv_pct(potential_plus),
         },
         {
             'stage': 'Hot', 'stage_note': 'Site Visited',
             'count': hot_plus,
             'lost_count': hot_plus - super_hot, 'lost_label': 'Stalled — No EOI/Booking',
+            'status_breakdown': status_breakdown('Hot'),
             'conv_original_pct': conv_pct(hot_plus),
         },
         {
             'stage': 'Super Hot', 'stage_note': 'EOI Collected',
             'count': super_hot,
             'lost_count': super_hot - bookings_count, 'lost_label': 'Pending — EOI Not Booked',
+            'status_breakdown': status_breakdown('Super Hot'),
             'conv_original_pct': conv_pct(super_hot),
         },
         {
             'stage': 'Booking Confirmed', 'stage_note': 'Booking Confirmed',
             'count': bookings_count,
-            'lost_count': 0, 'lost_label': '',
+            'lost_count': 0, 'lost_label': '', 'status_breakdown': [],
             'conv_original_pct': conv_pct(bookings_count),
         },
     ]
@@ -140,6 +178,22 @@ def dashboard_view(request):
         {'name': ch, 'count': leads_qs.filter(source=ch).count()}
         for ch in CHANNELS
     ]
+
+    # Sankey-style "Tag -> Lead Status" flow: for each tag tier, the specific
+    # statuses its leads currently carry — "these leads are in these statuses".
+    TAG_FLOW_COLORS = {
+        'No Tag': '#94A3B8', 'Cold': '#38BDF8', 'Potential': '#818CF8',
+        'Hot': '#FB923C', 'Super Hot': '#F43F5E',
+    }
+    tag_status_flow = []
+    for tag_name in ['No Tag', 'Cold', 'Potential', 'Hot', 'Super Hot']:
+        statuses = status_breakdown(tag_name)
+        total = sum(s['count'] for s in statuses)
+        if total > 0:
+            tag_status_flow.append({
+                'tag': tag_name, 'total': total,
+                'color': TAG_FLOW_COLORS[tag_name], 'statuses': statuses,
+            })
 
     # ── 3. Channel Performance ──────────────────────────────────────────────
     channel_data = []
@@ -188,15 +242,17 @@ def dashboard_view(request):
             'quality_rate': round(qr_ch, 1),
         })
 
-    # ── 4. Project Performance (always cross-project, for comparison) ──────
+    # ── 4. Project Performance (always cross-project, but still honors the
+    # timeline filter — only the Project filter itself is deliberately ignored
+    # so every project stays comparable side by side) ──────────────────────
     project_data = []
     for proj in Project.objects.all():
-        proj_spend    = AdCampaign.objects.filter(project=proj).aggregate(total=Sum('spend'))['total'] or 0
-        proj_leads    = Lead.objects.filter(project=proj).count()
-        proj_bookings = Booking.objects.filter(lead__project=proj).count()
-        proj_revenue  = Booking.objects.filter(lead__project=proj).aggregate(total=Sum('revenue_amount'))['total'] or 0
+        proj_spend    = AdCampaign.objects.filter(project=proj, date__range=(start_date, end_date)).aggregate(total=Sum('spend'))['total'] or 0
+        proj_leads    = Lead.objects.filter(project=proj, created_date__range=(start_date, end_date)).count()
+        proj_bookings = Booking.objects.filter(lead__project=proj, booking_date__range=(start_date, end_date)).count()
+        proj_revenue  = Booking.objects.filter(lead__project=proj, booking_date__range=(start_date, end_date)).aggregate(total=Sum('revenue_amount'))['total'] or 0
         proj_qual     = LeadStageHistory.objects.filter(
-            stage__in=QUALIFIED_STAGES, lead__project=proj
+            stage__in=QUALIFIED_STAGES, lead__project=proj, date_entered__range=(start_date, end_date)
         ).values('lead').distinct().count()
 
         project_data.append({
@@ -302,9 +358,13 @@ def dashboard_view(request):
     context = {
         'projects':          projects,
         'selected_project':  selected_project,
+        'range_presets':     RANGE_PRESETS,
+        'selected_range':    selected_range,
+        'selected_range_label': selected_range_label,
         'kpis':              kpis,
         'tag_funnel_data':   tag_funnel_data,
         'funnel_sources':    funnel_sources,
+        'tag_status_flow':   tag_status_flow,
         'channel_data':      channel_data,
         'project_data':      project_data,
         'chart_data':        chart_data,

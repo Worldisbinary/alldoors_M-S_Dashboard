@@ -1,0 +1,19 @@
+<div class="filter-bar">
+    <div class="filter-group">
+        <span class="pf-label">Project</span>
+        <select class="metric-sel filter-project" onchange="navFilter(this)">
+            <option value="">All Projects</option>
+            {% for p in projects %}
+            <option value="{{ p.id }}" {% if selected_project and selected_project.id == p.id %}selected{% endif %}>{{ p.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="filter-group">
+        <span class="pf-label">Timeline</span>
+        <select class="metric-sel filter-range" onchange="navFilter(this)">
+            {% for key, label, days in range_presets %}
+            <option value="{{ key }}" {% if selected_range == key %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+</div>

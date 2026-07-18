@@ -66,8 +66,20 @@
             color: var(--text);
         }
         .header-sub { margin-top:.4rem; color:var(--muted); font-size:.92rem; }
-        .project-filter { display:flex; align-items:center; gap:.5rem; }
+        .filter-bar { display:flex; align-items:center; gap:1rem; flex-wrap:wrap; }
+        .filter-group { display:flex; align-items:center; gap:.5rem; }
         .pf-label { font-size:.78rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+
+        /* ── KPI section headers ────────────────────────────────── */
+        .kpi-section { display:flex; flex-direction:column; gap:.75rem; }
+        .kpi-section-title {
+            font-size:.78rem; font-weight:700; text-transform:uppercase;
+            letter-spacing:.07em; color:var(--muted);
+            display:flex; align-items:center; gap:.5rem;
+        }
+        .kpi-section-title::after {
+            content:''; flex:1; height:1px; background:var(--border);
+        }
 
         /* ── KPI Grid ───────────────────────────────────────────── */
         .kpi-grid {
@@ -150,6 +162,36 @@
             border-radius:20px; padding:.3rem .7rem; font-size:.83rem; font-weight:600;
         }
         .fs-chip b { font-family:var(--display); font-weight:700; }
+
+        /* ── Sankey-style Tag -> Lead Status flow ───────────────── */
+        .status-flow-section {
+            border-top:1px solid var(--border); padding-top:1.5rem; margin-top:.5rem;
+            display:flex; flex-direction:column; gap:1rem;
+        }
+        .sf-label {
+            font-size:.78rem; font-weight:700; text-transform:uppercase;
+            letter-spacing:.06em; color:var(--muted);
+        }
+        .status-flow { display:flex; gap:1.5rem; flex-wrap:wrap; }
+        .sf-group { display:flex; flex-direction:column; align-items:center; flex:1; min-width:190px; }
+        .sf-tag-node {
+            display:flex; flex-direction:column; align-items:center; gap:.1rem;
+            background:var(--tag-color); color:#fff; border-radius:12px;
+            padding:.5rem 1.1rem; min-width:130px; text-align:center;
+            box-shadow:0 2px 8px rgba(0,0,0,.1); z-index:2;
+        }
+        .sf-tag-name { font-size:.8rem; font-weight:700; }
+        .sf-tag-count { font-family:var(--display); font-size:1.15rem; font-weight:700; }
+        .sf-canvas-wrap { position:relative; width:100%; height:44px; }
+        .sf-flow-canvas { position:absolute; top:0; left:0; width:100%; height:100%; }
+        .sf-statuses { display:flex; flex-wrap:wrap; gap:.5rem; justify-content:center; }
+        .sf-status-chip {
+            display:flex; flex-direction:column; align-items:center; gap:.1rem;
+            background:var(--bg); border:1px solid var(--border); border-radius:10px;
+            padding:.4rem .65rem; min-width:92px; z-index:2;
+        }
+        .sf-status-name { font-size:.68rem; color:var(--muted); text-align:center; line-height:1.2; }
+        .sf-status-count { font-family:var(--display); font-weight:700; font-size:.95rem; }
 
         /* ── Conversion Funnel ──────────────────────────────────── */
         .funnel-wrap {
@@ -256,6 +298,34 @@
 
         .chart-box { position:relative; height:260px; }
 
+        /* ── Chart x-axis range slider ──────────────────────────── */
+        .range-slider { position:relative; height:22px; margin:.25rem .5rem 0; }
+        .range-slider input[type=range] {
+            position:absolute; width:100%; top:0; left:0; height:22px;
+            -webkit-appearance:none; appearance:none;
+            background:transparent; pointer-events:none; margin:0;
+        }
+        .range-slider input[type=range]::-webkit-slider-runnable-track {
+            height:4px; background:var(--border); border-radius:2px;
+        }
+        .range-slider input[type=range]::-moz-range-track {
+            height:4px; background:var(--border); border-radius:2px;
+        }
+        .range-slider input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance:none; pointer-events:auto;
+            width:14px; height:14px; border-radius:50%; margin-top:-5px;
+            background:var(--indigo); cursor:pointer;
+            border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.35);
+        }
+        .range-slider input[type=range]::-moz-range-thumb {
+            pointer-events:auto; width:14px; height:14px; border-radius:50%;
+            background:var(--indigo); cursor:pointer; border:2px solid #fff;
+        }
+        .range-slider-labels {
+            display:flex; justify-content:space-between;
+            font-size:.72rem; color:var(--muted); margin:.15rem .5rem 0;
+        }
+
         /* ── Tables ─────────────────────────────────────────────── */
         .tbl-wrap { overflow-x:auto; }
         table { width:100%; border-collapse:collapse; font-size:.92rem; }
@@ -303,104 +373,109 @@
     <header>
         <div class="header-top">
             <h1>alldoors</h1>
-            {% include "attribution_dashboard/_project_filter.html" with select_id="pf-header" %}
+            {% include "attribution_dashboard/_filters.html" %}
         </div>
-        <p class="header-sub">Marketing &amp; Sales attribution — {% if selected_project %}{{ selected_project.name }}, {{ selected_project.location }}{% else %}All Projects{% endif %}</p>
+        <p class="header-sub">Marketing &amp; Sales attribution — {% if selected_project %}{{ selected_project.name }}, {{ selected_project.location }}{% else %}All Projects{% endif %} · {{ selected_range_label }}</p>
     </header>
 
-    <!-- ── KPI Grid ── -->
-    <div class="kpi-grid">
-
-        <div class="kpi ac-blue">
-            <span class="kpi-label">Total Leads</span>
-            <span class="kpi-desc">enquiries captured across all channels</span>
-            <span class="kpi-val" id="v-leads">0</span>
+    <!-- ── KPI Grid, grouped by category ── -->
+    <div class="kpi-section">
+        <span class="kpi-section-title">Volume</span>
+        <div class="kpi-grid">
+            <div class="kpi ac-blue">
+                <span class="kpi-label">Total Leads</span>
+                <span class="kpi-desc">enquiries captured across all channels</span>
+                <span class="kpi-val" id="v-leads">0</span>
+            </div>
+            <div class="kpi ac-indigo">
+                <span class="kpi-label">Qualified Leads</span>
+                <span class="kpi-desc">reached site visit, EOI or booking stage</span>
+                <span class="kpi-val" id="v-qual">0</span>
+            </div>
+            <div class="kpi ac-blue">
+                <span class="kpi-label">Closures</span>
+                <span class="kpi-desc">booking confirmations — customers won</span>
+                <span class="kpi-val" id="v-bookings">0</span>
+            </div>
+            <div class="kpi">
+                <span class="kpi-label">Total Clicks</span>
+                <span class="kpi-desc">ad clicks received across all platforms</span>
+                <span class="kpi-val" id="v-clicks">0</span>
+            </div>
+            <div class="kpi">
+                <span class="kpi-label">Impressions</span>
+                <span class="kpi-desc">total ad views across all platforms</span>
+                <span class="kpi-val" id="v-imps">0</span>
+            </div>
         </div>
+    </div>
 
-        <div class="kpi ac-violet">
-            <span class="kpi-label">CPL — Cost per Lead</span>
-            <span class="kpi-desc">spend ÷ total leads</span>
-            <span class="kpi-val" id="v-cpl">₹0</span>
+    <div class="kpi-section">
+        <span class="kpi-section-title">Cost Efficiency</span>
+        <div class="kpi-grid">
+            <div class="kpi ac-violet">
+                <span class="kpi-label">CPL — Cost per Lead</span>
+                <span class="kpi-desc">spend ÷ total leads</span>
+                <span class="kpi-val" id="v-cpl">₹0</span>
+            </div>
+            <div class="kpi ac-teal">
+                <span class="kpi-label">CPQL — Cost per Qualified Lead</span>
+                <span class="kpi-desc">spend ÷ leads who visited site / gave EOI</span>
+                <span class="kpi-val" id="v-cpql">₹0</span>
+            </div>
+            <div class="kpi ac-amber">
+                <span class="kpi-label">CAC — Customer Acq. Cost</span>
+                <span class="kpi-desc">spend ÷ signed bookings</span>
+                <span class="kpi-val" id="v-cac">₹0</span>
+            </div>
+            <div class="kpi">
+                <span class="kpi-label">Ad Spend</span>
+                <span class="kpi-desc">total media spend across all paid channels</span>
+                <span class="kpi-val" id="v-spend">₹0</span>
+            </div>
         </div>
+    </div>
 
-        <div class="kpi ac-teal">
-            <span class="kpi-label">CPQL — Cost per Qualified Lead</span>
-            <span class="kpi-desc">spend ÷ leads who visited site / gave EOI</span>
-            <span class="kpi-val" id="v-cpql">₹0</span>
+    <div class="kpi-section">
+        <span class="kpi-section-title">Return &amp; Revenue</span>
+        <div class="kpi-grid">
+            <div class="kpi ac-green">
+                <span class="kpi-label">ROAS</span>
+                <span class="kpi-desc">revenue ÷ ad spend — return per ₹ spent</span>
+                <span class="kpi-val" id="v-roas">0x</span>
+            </div>
+            <div class="kpi ac-green">
+                <span class="kpi-label">Revenue</span>
+                <span class="kpi-desc">brokerage commission earned from closures</span>
+                <span class="kpi-val" id="v-revenue">₹0</span>
+            </div>
         </div>
+    </div>
 
-        <div class="kpi ac-amber">
-            <span class="kpi-label">CAC — Customer Acq. Cost</span>
-            <span class="kpi-desc">spend ÷ signed bookings</span>
-            <span class="kpi-val" id="v-cac">₹0</span>
+    <div class="kpi-section">
+        <span class="kpi-section-title">Engagement &amp; Quality</span>
+        <div class="kpi-grid">
+            <div class="kpi ac-indigo">
+                <span class="kpi-label">CTR — Click-Through Rate</span>
+                <span class="kpi-desc">clicks ÷ impressions — how often ads get clicked</span>
+                <span class="kpi-val" id="v-ctr">0%</span>
+            </div>
+            <div class="kpi ac-violet">
+                <span class="kpi-label">CVR — Click-to-Lead Rate</span>
+                <span class="kpi-desc">leads ÷ clicks — how often a click becomes a lead</span>
+                <span class="kpi-val" id="v-cvr">0%</span>
+            </div>
+            <div class="kpi ac-teal">
+                <span class="kpi-label">Quality Rate</span>
+                <span class="kpi-desc">qualified leads ÷ total — share of serious buyers</span>
+                <span class="kpi-val" id="v-qr">0%</span>
+            </div>
+            <div class="kpi ac-amber">
+                <span class="kpi-label">Time to Close</span>
+                <span class="kpi-desc">avg days from first inquiry to booking confirmed</span>
+                <span class="kpi-val" id="v-ttc">0 d</span>
+            </div>
         </div>
-
-        <div class="kpi ac-green">
-            <span class="kpi-label">ROAS</span>
-            <span class="kpi-desc">revenue ÷ ad spend — return per ₹ spent</span>
-            <span class="kpi-val" id="v-roas">0x</span>
-        </div>
-
-        <div class="kpi ac-indigo">
-            <span class="kpi-label">CTR — Click-Through Rate</span>
-            <span class="kpi-desc">clicks ÷ impressions — how often ads get clicked</span>
-            <span class="kpi-val" id="v-ctr">0%</span>
-        </div>
-
-        <div class="kpi ac-violet">
-            <span class="kpi-label">CVR — Click-to-Lead Rate</span>
-            <span class="kpi-desc">leads ÷ clicks — how often a click becomes a lead</span>
-            <span class="kpi-val" id="v-cvr">0%</span>
-        </div>
-
-        <div class="kpi ac-teal">
-            <span class="kpi-label">Quality Rate</span>
-            <span class="kpi-desc">qualified leads ÷ total — share of serious buyers</span>
-            <span class="kpi-val" id="v-qr">0%</span>
-        </div>
-
-        <div class="kpi ac-amber">
-            <span class="kpi-label">Time to Close</span>
-            <span class="kpi-desc">avg days from first inquiry to booking confirmed</span>
-            <span class="kpi-val" id="v-ttc">0 d</span>
-        </div>
-
-        <div class="kpi">
-            <span class="kpi-label">Ad Spend</span>
-            <span class="kpi-desc">total media spend across all paid channels</span>
-            <span class="kpi-val" id="v-spend">₹0</span>
-        </div>
-
-        <div class="kpi ac-green">
-            <span class="kpi-label">Revenue</span>
-            <span class="kpi-desc">brokerage commission earned from closures</span>
-            <span class="kpi-val" id="v-revenue">₹0</span>
-        </div>
-
-        <div class="kpi ac-blue">
-            <span class="kpi-label">Closures</span>
-            <span class="kpi-desc">booking confirmations — customers won</span>
-            <span class="kpi-val" id="v-bookings">0</span>
-        </div>
-
-        <div class="kpi ac-indigo">
-            <span class="kpi-label">Qualified Leads</span>
-            <span class="kpi-desc">reached site visit, EOI or booking stage</span>
-            <span class="kpi-val" id="v-qual">0</span>
-        </div>
-
-        <div class="kpi">
-            <span class="kpi-label">Total Clicks</span>
-            <span class="kpi-desc">ad clicks received across all platforms</span>
-            <span class="kpi-val" id="v-clicks">0</span>
-        </div>
-
-        <div class="kpi">
-            <span class="kpi-label">Impressions</span>
-            <span class="kpi-desc">total ad views across all platforms</span>
-            <span class="kpi-val" id="v-imps">0</span>
-        </div>
-
     </div>
 
     <div class="stack">
@@ -409,7 +484,7 @@
         <div class="card">
             <div class="card-hdr">
                 <span class="card-title">Sales Funnel — Marketing to Booking</span>
-                {% include "attribution_dashboard/_project_filter.html" with select_id="pf-funnel" %}
+                {% include "attribution_dashboard/_filters.html" %}
             </div>
 
             <div class="funnel-sources">
@@ -423,6 +498,31 @@
             </div>
 
             {% include "attribution_dashboard/_funnel.html" with funnel_list=tag_funnel_data prefix="funnel" %}
+
+            <div class="status-flow-section">
+                <span class="sf-label">↓ Lead Status Breakdown — these leads are in these statuses</span>
+                <div class="status-flow">
+                    {% for grp in tag_status_flow %}
+                    <div class="sf-group">
+                        <div class="sf-tag-node" style="--tag-color: {{ grp.color }}">
+                            <span class="sf-tag-name">{{ grp.tag }}</span>
+                            <span class="sf-tag-count">{{ grp.total }}</span>
+                        </div>
+                        <div class="sf-canvas-wrap">
+                            <canvas class="sf-flow-canvas"></canvas>
+                        </div>
+                        <div class="sf-statuses">
+                            {% for s in grp.statuses %}
+                            <div class="sf-status-chip">
+                                <span class="sf-status-name">{{ s.name }}</span>
+                                <span class="sf-status-count" data-count="{{ s.count }}">0</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
         </div>
 
         <!-- ── Leads Over Time ── -->
@@ -436,10 +536,18 @@
                         <button class="btn" data-ch="{{ ch }}" onclick="leadsSwitch('{{ ch }}')">{{ ch }}</button>
                         {% endfor %}
                     </div>
-                    {% include "attribution_dashboard/_project_filter.html" with select_id="pf-leads" %}
+                    {% include "attribution_dashboard/_filters.html" %}
                 </div>
             </div>
             <div class="chart-box"><canvas id="leads-chart"></canvas></div>
+            <div class="range-slider">
+                <input type="range" class="rs-min" id="leads-slider-min">
+                <input type="range" class="rs-max" id="leads-slider-max">
+            </div>
+            <div class="range-slider-labels">
+                <span id="leads-slider-lo">–</span>
+                <span id="leads-slider-hi">–</span>
+            </div>
         </div>
 
         <!-- ── Metric Explorer ── -->
@@ -474,16 +582,24 @@
                         {% endfor %}
                     </div>
                 </div>
-                {% include "attribution_dashboard/_project_filter.html" with select_id="pf-metric" %}
+                {% include "attribution_dashboard/_filters.html" %}
             </div>
             <div class="chart-box"><canvas id="metric-chart"></canvas></div>
+            <div class="range-slider">
+                <input type="range" class="rs-min" id="metric-slider-min">
+                <input type="range" class="rs-max" id="metric-slider-max">
+            </div>
+            <div class="range-slider-labels">
+                <span id="metric-slider-lo">–</span>
+                <span id="metric-slider-hi">–</span>
+            </div>
         </div>
 
         <!-- ── Channel Performance Table ── -->
         <div class="card">
             <div class="card-hdr">
                 <span class="card-title">Channel Performance</span>
-                {% include "attribution_dashboard/_project_filter.html" with select_id="pf-channel" %}
+                {% include "attribution_dashboard/_filters.html" %}
             </div>
             <div class="tbl-wrap">
                 <table>
@@ -586,6 +702,18 @@ const cd     = JSON.parse(document.getElementById('j-chart').textContent);
 Chart.defaults.font.family = "'Inter', sans-serif";
 Chart.defaults.font.size   = 12;
 
+/* ─ project + timeline filter bar (repeated per card) ─ */
+function navFilter(el) {
+    const bar = el.closest('.filter-bar');
+    const project = bar.querySelector('.filter-project').value;
+    const range = bar.querySelector('.filter-range').value;
+    const params = new URLSearchParams();
+    if (project) params.set('project', project);
+    if (range && range !== 'all') params.set('range', range);
+    const qs = params.toString();
+    location.href = qs ? ('?' + qs) : location.pathname;
+}
+
 /* ─ palette ─ */
 const PAL = {
     'Google':            { line:'#1A73E8', fill:'rgba(26,115,232,0.07)' },
@@ -649,19 +777,55 @@ function chartOpts(yFmt) {
     };
 }
 
+/* ─ x-axis range slider (client-side crop on top of the server-filtered window) ─ */
+function cropLabelsData(labels, datasets, range) {
+    const [lo, hi] = range;
+    return {
+        labels: labels.slice(lo, hi + 1),
+        datasets: datasets.map(d => ({ ...d, data: d.data.slice(lo, hi + 1) })),
+    };
+}
+function setupSlider(minId, maxId, loLabelId, hiLabelId, length, onChange) {
+    const minEl = document.getElementById(minId), maxEl = document.getElementById(maxId);
+    const loLabel = document.getElementById(loLabelId), hiLabel = document.getElementById(hiLabelId);
+    minEl.min = maxEl.min = 0;
+    minEl.max = maxEl.max = length - 1;
+    minEl.value = 0;
+    maxEl.value = length - 1;
+    const apply = () => {
+        let lo = parseInt(minEl.value, 10), hi = parseInt(maxEl.value, 10);
+        if (lo > hi) { const t = lo; lo = hi; hi = t; }
+        loLabel.textContent = cd.dates[lo];
+        hiLabel.textContent = cd.dates[hi];
+        onChange(lo, hi);
+    };
+    minEl.addEventListener('input', apply);
+    maxEl.addEventListener('input', apply);
+    apply();
+}
+
 /* ── LEADS CHART ── */
-let leadsChart;
+let leadsChart, leadsPlat = 'all', leadsRange;
 function leadsDS(ch) {
     if (ch === 'all') return cd.channels.map(c => ds(c, cd.leads[c]));
     return [ds(ch, cd.leads[ch])];
 }
+function renderLeads() {
+    const cropped = cropLabelsData(cd.dates, leadsDS(leadsPlat), leadsRange);
+    leadsChart.data.labels = cropped.labels;
+    leadsChart.data.datasets = cropped.datasets;
+    leadsChart.update();
+}
 function initLeads() {
+    leadsRange = [0, cd.dates.length - 1];
     leadsChart = new Chart(document.getElementById('leads-chart').getContext('2d'),
         { type:'line', data:{ labels:cd.dates, datasets:leadsDS('all') }, options:chartOpts(null) });
+    setupSlider('leads-slider-min', 'leads-slider-max', 'leads-slider-lo', 'leads-slider-hi', cd.dates.length,
+        (lo, hi) => { leadsRange = [lo, hi]; renderLeads(); });
 }
 function leadsSwitch(ch) {
-    leadsChart.data.datasets = leadsDS(ch);
-    leadsChart.update();
+    leadsPlat = ch;
+    renderLeads();
     document.querySelectorAll('#leads-filter .btn').forEach(b => b.classList.toggle('on', b.dataset.ch === ch));
 }
 
@@ -679,7 +843,7 @@ const METRIC_CFG = {
     bookings:    { key:'bookings',    isCur:false, suf:'',  label:'Bookings' },
 };
 
-let metricChart, curMetric='cpl', metricPlat='all';
+let metricChart, curMetric='cpl', metricPlat='all', metricRange;
 function metricGetYFmt(metric) {
     const cfg=METRIC_CFG[metric];
     if (cfg.isCur) return fmtINR;
@@ -692,24 +856,31 @@ function metricGetDS(metric, ch) {
     if (ch==='all') return cd.channels.map(c => ds(c, series[c]));
     return [ds(ch, series[ch])];
 }
+function renderMetric() {
+    const cropped = cropLabelsData(cd.dates, metricGetDS(curMetric, metricPlat), metricRange);
+    metricChart.data.labels = cropped.labels;
+    metricChart.data.datasets = cropped.datasets;
+    metricChart.update();
+}
 function initMetric() {
+    metricRange = [0, cd.dates.length - 1];
     const yFmt = metricGetYFmt(curMetric);
     metricChart = new Chart(document.getElementById('metric-chart').getContext('2d'),
         { type:'line', data:{ labels:cd.dates, datasets:metricGetDS(curMetric,'all') }, options:chartOpts(yFmt) });
+    setupSlider('metric-slider-min', 'metric-slider-max', 'metric-slider-lo', 'metric-slider-hi', cd.dates.length,
+        (lo, hi) => { metricRange = [lo, hi]; renderMetric(); });
 }
 function metricSwitch(metric) {
     curMetric = metric;
     const yFmt = metricGetYFmt(metric);
-    metricChart.data.datasets = metricGetDS(metric, metricPlat);
     metricChart.options.scales.y.ticks.callback = v=>yFmt?yFmt(v):v.toLocaleString();
     metricChart.options.plugins.tooltip.callbacks.label = ctx =>
         (ctx.dataset.label||'')+': '+(yFmt?yFmt(ctx.parsed.y):ctx.parsed.y.toLocaleString());
-    metricChart.update();
+    renderMetric();
 }
 function metricPlatSwitch(ch) {
     metricPlat = ch;
-    metricChart.data.datasets = metricGetDS(curMetric, ch);
-    metricChart.update();
+    renderMetric();
     document.querySelectorAll('#metric-filter .btn').forEach(b => b.classList.toggle('on', b.dataset.ch === ch));
 }
 
@@ -783,6 +954,42 @@ function initFunnel(prefix, funnel) {
     draw();
 }
 
+/* ── TAG -> LEAD STATUS SANKEY FLOW ── */
+function drawStatusFlow() {
+    document.querySelectorAll('.sf-group').forEach(grp => {
+        const canvas = grp.querySelector('.sf-flow-canvas');
+        const wrap   = grp.querySelector('.sf-canvas-wrap');
+        const tagNode = grp.querySelector('.sf-tag-node');
+        const chips  = grp.querySelectorAll('.sf-status-chip');
+        if (!canvas || !chips.length) return;
+
+        const wrapRect = wrap.getBoundingClientRect();
+        canvas.width  = wrapRect.width;
+        canvas.height = wrapRect.height;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const tagRect = tagNode.getBoundingClientRect();
+        const startX  = tagRect.left - wrapRect.left + tagRect.width / 2;
+        const counts  = Array.from(chips).map(c => parseInt(c.querySelector('.sf-status-count').getAttribute('data-count'), 10) || 0);
+        const maxCount = Math.max(...counts, 1);
+
+        chips.forEach((chip, i) => {
+            const cr = chip.getBoundingClientRect();
+            const endX = cr.left - wrapRect.left + cr.width / 2;
+            const lw = Math.max(2, (counts[i] / maxCount) * 16);
+            ctx.beginPath();
+            ctx.moveTo(startX, 0);
+            ctx.bezierCurveTo(startX, canvas.height * 0.6, endX, canvas.height * 0.4, endX, canvas.height);
+            ctx.lineWidth = lw;
+            ctx.strokeStyle = 'rgba(67,56,202,0.22)';
+            ctx.lineCap = 'round';
+            ctx.stroke();
+        });
+    });
+}
+window.addEventListener('resize', drawStatusFlow);
+
 /* ── INIT ── */
 window.addEventListener('DOMContentLoaded', ()=>{
     const D = 1400;
@@ -809,6 +1016,10 @@ window.addEventListener('DOMContentLoaded', ()=>{
         if (tel) setTimeout(()=>count(tel, f.lost_count, D-200), 200);
     });
 
+    document.querySelectorAll('.sf-status-count').forEach(el=>{
+        count(el, parseInt(el.getAttribute('data-count'), 10) || 0, D);
+    });
+
     /* Format all currency cells */
     document.querySelectorAll('.fmt').forEach(el=>{
         el.textContent = fmtINR(parseFloat(el.getAttribute('data-v')));
@@ -818,6 +1029,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
     initFunnel('funnel', funnel);
     initLeads();
     initMetric();
+    drawStatusFlow();
 });
 </script>
 </body>

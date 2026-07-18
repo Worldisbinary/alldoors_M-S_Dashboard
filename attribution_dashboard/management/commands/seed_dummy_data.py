@@ -89,24 +89,51 @@ class Command(BaseCommand):
             'Booking Confirmed'
         ]
 
-        def derive_call_and_tag(stage):
-            """Maps a CRM stage to a (call_status, tag) pair reflecting the real
-            Sales workflow: RNR (not picked) / Picked -> Cold (not interested) or
-            Potential (details shared) -> Hot (site visit) -> Super Hot (EOI/booking)."""
+        # Which Lead Status call_status implies, for statuses not covered by the
+        # default 'Picked' (a resolved status always means the call was picked,
+        # except these two which represent "not yet successfully connected").
+        STATUS_CALL_MAP = {'Not Connected': '', 'Follow Up': 'Picked', 'Follow Up RNR': 'RNR'}
+
+        def weighted_choice(pool):
+            return random.choices(list(pool.keys()), weights=list(pool.values()), k=1)[0]
+
+        def derive_status_call_tag(stage):
+            """Assigns a Lead Status (matching the real CRM's outcome taxonomy) for
+            most leads, then derives call_status and tag FROM that status — tag is
+            authoritative per Lead.STATUS_TAG_MAP. A lead with no resolved status
+            yet falls back to the plain stage-based tag (RNR/Picked -> Cold or
+            Potential -> Hot -> Super Hot)."""
             if stage == 'Not Yet Connected':
-                r = random.random()
-                if r < 0.55:
-                    return '', 'No Tag'            # not attempted yet
-                elif r < 0.80:
-                    return 'RNR', 'No Tag'          # attempted, not picked up
-                else:
-                    return 'Picked', 'Cold'         # picked up, not interested
+                status = weighted_choice({
+                    'Not Connected': 0.30, 'Follow Up RNR': 0.15,
+                    'Not Interested': 0.45, 'Junk': 0.10,
+                })
             elif stage in ('Lead Registered', 'Initial Contacted'):
-                return 'Picked', 'Potential'
+                status = weighted_choice({
+                    'Follow Up': 0.05, 'Not Interested': 0.35, 'Junk': 0.05,
+                    'Interested': 0.20, 'Requirement Collected': 0.20,
+                    'Property Changed': 0.08, 'Visit Dropped': 0.07,
+                })
             elif stage == 'Site Visited':
-                return 'Picked', 'Hot'
-            else:  # EOI Collected, Booking Confirmed
-                return 'Picked', 'Super Hot'
+                status = weighted_choice({
+                    'Visit Unsuccessful': 0.5, 'Requirement Collected': 0.3, 'Property Changed': 0.2,
+                })
+            elif stage == 'EOI Collected':
+                status = weighted_choice({'': 0.6, 'Eoi Dropped': 0.25, 'Booking Dropped': 0.15})
+            else:  # Booking Confirmed
+                status = 'Closed'
+
+            if status:
+                return STATUS_CALL_MAP.get(status, 'Picked'), Lead.STATUS_TAG_MAP[status], status
+
+            # No resolved status yet — fall back to plain stage-based tag.
+            fallback_tag = {
+                'Not Yet Connected': 'No Tag', 'Lead Registered': 'Potential',
+                'Initial Contacted': 'Potential', 'Site Visited': 'Hot',
+                'EOI Collected': 'Super Hot', 'Booking Confirmed': 'Super Hot',
+            }[stage]
+            fallback_call = '' if stage == 'Not Yet Connected' else 'Picked'
+            return fallback_call, fallback_tag, ''
 
         # Stop weights (corresponds to CRM's conversion ratios):
         # Not Yet Connected: ~40% drop-off
@@ -137,7 +164,7 @@ class Command(BaseCommand):
 
             current_stage = random.choices(stages, weights=stage_stop_weights, k=1)[0]
             final_stage_idx = stages.index(current_stage)
-            call_status, tag = derive_call_and_tag(current_stage)
+            call_status, tag, lead_status = derive_status_call_tag(current_stage)
 
             lead = Lead.objects.create(
                 name=name,
@@ -147,6 +174,7 @@ class Command(BaseCommand):
                 current_stage=current_stage,
                 call_status=call_status,
                 tag=tag,
+                lead_status=lead_status,
                 project=proj
             )
             total_leads_created += 1

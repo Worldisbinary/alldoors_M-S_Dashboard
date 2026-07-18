@@ -41,6 +41,42 @@ class Lead(models.Model):
         ('Super Hot', 'Super Hot'),
     ]
 
+    # Fine-grained sales action/outcome. When set, it is authoritative for `tag`
+    # (see STATUS_TAG_MAP below) — leads without a recorded status yet fall back
+    # to the stage-based tag logic in the seed script / views.
+    STATUS_CHOICES = [
+        ('Not Connected', 'Not Connected'),
+        ('Follow Up', 'Follow Up'),
+        ('Follow Up RNR', 'Follow Up RNR'),
+        ('Not Interested', 'Not Interested'),
+        ('Junk', 'Junk'),
+        ('Interested', 'Interested'),
+        ('Requirement Collected', 'Requirement Collected'),
+        ('Property Changed', 'Property Changed'),
+        ('Visit Dropped', 'Visit Dropped'),
+        ('Visit Unsuccessful', 'Visit Unsuccessful'),
+        ('Closed', 'Closed'),
+        ('Booking Dropped', 'Booking Dropped'),
+        ('Eoi Dropped', 'Eoi Dropped'),
+    ]
+
+    # Maps each Lead Status to the Tag it implies — tag is derived from status.
+    STATUS_TAG_MAP = {
+        'Not Connected':         'No Tag',
+        'Follow Up':             'No Tag',
+        'Follow Up RNR':         'No Tag',
+        'Not Interested':        'Cold',
+        'Junk':                  'Cold',
+        'Interested':            'Potential',
+        'Requirement Collected': 'Potential',
+        'Property Changed':      'Potential',
+        'Visit Dropped':         'Potential',
+        'Visit Unsuccessful':    'Hot',
+        'Closed':                'Super Hot',
+        'Booking Dropped':       'Super Hot',
+        'Eoi Dropped':           'Super Hot',
+    }
+
     name = models.CharField(max_length=255)
     source = models.CharField(max_length=50, choices=PLATFORM_CHOICES)
     campaign_name = models.CharField(max_length=255)
@@ -48,6 +84,7 @@ class Lead(models.Model):
     current_stage = models.CharField(max_length=50, choices=STAGE_CHOICES, default='Not Yet Connected')
     call_status = models.CharField(max_length=20, choices=CALL_STATUS_CHOICES, blank=True)
     tag = models.CharField(max_length=20, choices=TAG_CHOICES, default='No Tag')
+    lead_status = models.CharField(max_length=30, choices=STATUS_CHOICES, blank=True)
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='leads')
 
     def __str__(self):
