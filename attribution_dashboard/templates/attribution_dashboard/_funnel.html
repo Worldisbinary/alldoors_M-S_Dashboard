@@ -1,0 +1,33 @@
+<div class="funnel-wrap" id="{{ prefix }}-wrap">
+    <canvas id="{{ prefix }}-canvas"></canvas>
+
+    {% for s in funnel_list %}
+    <div class="stage-col" id="{{ prefix }}-sc-{{ forloop.counter0 }}">
+
+        <!-- Name + conv% + count stacked -->
+        <div class="stage-top">
+            <span class="stage-name">{{ s.stage }}</span>
+            <span class="stage-conv">{{ s.conv_original_pct }}% of leads</span>
+            <span class="stage-count" id="{{ prefix }}-cnt-{{ forloop.counter0 }}">0</span>
+        </div>
+
+        <!-- Bar -->
+        <div class="stage-bar-wrap">
+            <div class="stage-bar" id="{{ prefix }}-bar-{{ forloop.counter0 }}"></div>
+            {% if not forloop.last %}<div class="stage-conn"></div>{% endif %}
+        </div>
+
+        <!-- Drop / success -->
+        <div class="stage-bot">
+            {% if not forloop.last %}
+            <div class="trash-wrap" id="{{ prefix }}-trash-{{ forloop.counter0 }}">
+                <span class="trash-label">{{ s.lost_label }}</span>
+                <span class="trash-count" id="{{ prefix }}-tlost-{{ forloop.counter0 }}">0</span>
+            </div>
+            {% else %}
+            <div class="success-box">{{ s.conv_original_pct }}% Won</div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>

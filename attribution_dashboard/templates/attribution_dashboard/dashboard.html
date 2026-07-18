@@ -159,7 +159,7 @@
             padding:1.5rem 0; gap:.4rem;
             min-height: 420px;
         }
-        #funnel-canvas {
+        .funnel-wrap canvas {
             position:absolute; top:0; left:0;
             width:100%; height:100%;
             pointer-events:none; z-index:10;
@@ -299,15 +299,7 @@
     <header>
         <div class="header-top">
             <h1>alldoors</h1>
-            <div class="project-filter">
-                <span class="pf-label">Project</span>
-                <select id="project-select" class="metric-sel" onchange="location.href = this.value ? ('?project=' + this.value) : location.pathname">
-                    <option value="">All Projects</option>
-                    {% for p in projects %}
-                    <option value="{{ p.id }}" {% if selected_project and selected_project.id == p.id %}selected{% endif %}>{{ p.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
+            {% include "attribution_dashboard/_project_filter.html" with select_id="pf-header" %}
         </div>
         <p class="header-sub">Marketing &amp; Sales attribution — {% if selected_project %}{{ selected_project.name }}, {{ selected_project.location }}{% else %}All Projects{% endif %}</p>
     </header>
@@ -409,10 +401,11 @@
 
     <div class="stack">
 
-        <!-- ── Conversion Funnel ── -->
+        <!-- ── Sales Funnel (Tag-based) ── -->
         <div class="card">
             <div class="card-hdr">
-                <span class="card-title">Sales Funnel — Marketing to Booking</span>
+                <span class="card-title">Sales Funnel — Marketing to Booking (by Tag)</span>
+                {% include "attribution_dashboard/_project_filter.html" with select_id="pf-tagfunnel" %}
             </div>
 
             <div class="funnel-sources">
@@ -425,50 +418,31 @@
                 {% endfor %}
             </div>
 
-            <div class="funnel-wrap" id="funnel-wrap">
-                <canvas id="funnel-canvas"></canvas>
+            {% include "attribution_dashboard/_funnel.html" with funnel_list=tag_funnel_data prefix="tf" %}
+        </div>
 
-                {% for s in funnel_data %}
-                <div class="stage-col" id="sc-{{ forloop.counter0 }}">
-
-                    <!-- Name + conv% + count stacked -->
-                    <div class="stage-top">
-                        <span class="stage-name">{{ s.stage }}</span>
-                        <span class="stage-conv">{{ s.conv_original_pct }}% of leads</span>
-                        <span class="stage-count" id="cnt-{{ forloop.counter0 }}">0</span>
-                    </div>
-
-                    <!-- Bar -->
-                    <div class="stage-bar-wrap">
-                        <div class="stage-bar" id="bar-{{ forloop.counter0 }}"></div>
-                        {% if not forloop.last %}<div class="stage-conn"></div>{% endif %}
-                    </div>
-
-                    <!-- Drop / success -->
-                    <div class="stage-bot">
-                        {% if not forloop.last %}
-                        <div class="trash-wrap" id="trash-{{ forloop.counter0 }}">
-                            <span class="trash-label">{{ s.lost_label }}</span>
-                            <span class="trash-count" id="tlost-{{ forloop.counter0 }}">0</span>
-                        </div>
-                        {% else %}
-                        <div class="success-box">{{ s.conv_original_pct }}% Won</div>
-                        {% endif %}
-                    </div>
-                </div>
-                {% endfor %}
+        <!-- ── Lead Stage Funnel (raw CRM stages) ── -->
+        <div class="card">
+            <div class="card-hdr">
+                <span class="card-title">Lead Stage Funnel — CRM Stages</span>
+                {% include "attribution_dashboard/_project_filter.html" with select_id="pf-stagefunnel" %}
             </div>
+
+            {% include "attribution_dashboard/_funnel.html" with funnel_list=stage_funnel_data prefix="sf" %}
         </div>
 
         <!-- ── Leads Over Time ── -->
         <div class="card">
             <div class="card-hdr">
                 <span class="card-title">Leads Acquired Over Time</span>
-                <div class="chart-controls" id="leads-filter">
-                    <button class="btn on" data-ch="all" onclick="leadsSwitch('all')">All</button>
-                    {% for ch in chart_data.channels %}
-                    <button class="btn" data-ch="{{ ch }}" onclick="leadsSwitch('{{ ch }}')">{{ ch }}</button>
-                    {% endfor %}
+                <div class="chart-controls">
+                    <div class="chart-controls" id="leads-filter">
+                        <button class="btn on" data-ch="all" onclick="leadsSwitch('all')">All</button>
+                        {% for ch in chart_data.channels %}
+                        <button class="btn" data-ch="{{ ch }}" onclick="leadsSwitch('{{ ch }}')">{{ ch }}</button>
+                        {% endfor %}
+                    </div>
+                    {% include "attribution_dashboard/_project_filter.html" with select_id="pf-leads" %}
                 </div>
             </div>
             <div class="chart-box"><canvas id="leads-chart"></canvas></div>
@@ -506,6 +480,7 @@
                         {% endfor %}
                     </div>
                 </div>
+                {% include "attribution_dashboard/_project_filter.html" with select_id="pf-metric" %}
             </div>
             <div class="chart-box"><canvas id="metric-chart"></canvas></div>
         </div>
@@ -514,6 +489,7 @@
         <div class="card">
             <div class="card-hdr">
                 <span class="card-title">Channel Performance</span>
+                {% include "attribution_dashboard/_project_filter.html" with select_id="pf-channel" %}
             </div>
             <div class="tbl-wrap">
                 <table>
@@ -605,12 +581,15 @@
 </div>
 
 {{ kpis|json_script:"j-kpis" }}
-{{ funnel_data|json_script:"j-funnel" }}
+{{ tag_funnel_data|json_script:"j-tagfunnel" }}
+{{ stage_funnel_data|json_script:"j-stagefunnel" }}
 {{ chart_data|json_script:"j-chart" }}
 
 <script>
-const kpis      = JSON.parse(document.getElementById('j-kpis').textContent);
-const funnel    = JSON.parse(document.getElementById('j-funnel').textContent);
+const kpis        = JSON.parse(document.getElementById('j-kpis').textContent);
+const tagFunnel   = JSON.parse(document.getElementById('j-tagfunnel').textContent);
+const stageFunnel = JSON.parse(document.getElementById('j-stagefunnel').textContent);
+const FUNNELS = { tf: tagFunnel, sf: stageFunnel };
 const cd        = JSON.parse(document.getElementById('j-chart').textContent);
 
 Chart.defaults.font.family = "'Inter', sans-serif";
@@ -744,26 +723,26 @@ function metricPlatSwitch(ch) {
 }
 
 /* ── FUNNEL BARS ── */
-function initBars() {
+function initBars(prefix, funnel) {
     const max = funnel[0]?.count || 1;
     funnel.forEach((f,i)=>{
-        const bar = document.getElementById('bar-'+i);
+        const bar = document.getElementById(prefix+'-bar-'+i);
         if (!bar) return;
         bar.style.height = Math.max(8, Math.round(f.count/max*140)) + 'px';
     });
 }
 
 /* ── FUNNEL ANIMATION ── */
-function initFunnel() {
-    const canvas = document.getElementById('funnel-canvas');
-    const wrap   = document.getElementById('funnel-wrap');
+function initFunnel(prefix, funnel) {
+    const canvas = document.getElementById(prefix+'-canvas');
+    const wrap   = document.getElementById(prefix+'-wrap');
     const r      = wrap.getBoundingClientRect();
     canvas.width  = r.width;
     canvas.height = r.height;
     const ctx = canvas.getContext('2d');
 
     const cols = funnel.map((_,i)=>{
-        const col  = document.getElementById('sc-'+i);
+        const col  = document.getElementById(prefix+'-sc-'+i);
         if (!col) return null;
         const cr = col.getBoundingClientRect();
         return { x: cr.left - r.left + cr.width/2, barTop: cr.top - r.top + 95 };
@@ -832,11 +811,13 @@ window.addEventListener('DOMContentLoaded', ()=>{
     count(document.getElementById('v-clicks'),   kpis.total_clicks,      D);
     count(document.getElementById('v-imps'),     kpis.total_impressions, D);
 
-    funnel.forEach((f,i)=>{
-        const cel = document.getElementById('cnt-'+i);
-        if (cel) count(cel, f.count, D);
-        const tel = document.getElementById('tlost-'+i);
-        if (tel) setTimeout(()=>count(tel, f.lost_count, D-200), 200);
+    Object.entries(FUNNELS).forEach(([prefix, funnel])=>{
+        funnel.forEach((f,i)=>{
+            const cel = document.getElementById(prefix+'-cnt-'+i);
+            if (cel) count(cel, f.count, D);
+            const tel = document.getElementById(prefix+'-tlost-'+i);
+            if (tel) setTimeout(()=>count(tel, f.lost_count, D-200), 200);
+        });
     });
 
     /* Format all currency cells */
@@ -844,8 +825,10 @@ window.addEventListener('DOMContentLoaded', ()=>{
         el.textContent = fmtINR(parseFloat(el.getAttribute('data-v')));
     });
 
-    initBars();
-    initFunnel();
+    initBars('tf', tagFunnel);
+    initBars('sf', stageFunnel);
+    initFunnel('tf', tagFunnel);
+    initFunnel('sf', stageFunnel);
     initLeads();
     initMetric();
 });

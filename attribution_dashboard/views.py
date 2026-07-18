@@ -92,7 +92,7 @@ def dashboard_view(request):
     def conv_pct(n):
         return round(n / leads_generated * 100, 1) if leads_generated > 0 else 0.0
 
-    funnel_data = [
+    tag_funnel_data = [
         {
             'stage': 'Leads Generated', 'count': leads_generated,
             'lost_count': leads_generated - contacted, 'lost_label': 'RNR / Follow-up',
@@ -129,6 +129,28 @@ def dashboard_view(request):
         {'name': ch, 'count': leads_qs.filter(source=ch).count()}
         for ch in CHANNELS
     ]
+
+    # ── 2b. Lead Stage Funnel — raw CRM stages (Not Yet Connected → Booking) ─
+    stages_list = [
+        'Not Yet Connected', 'Lead Registered', 'Initial Contacted',
+        'Site Visited', 'EOI Collected', 'Booking Confirmed'
+    ]
+    stage_counts = {
+        stage: stage_history_qs.filter(stage=stage).values('lead').distinct().count()
+        for stage in stages_list
+    }
+    stage_funnel_data = []
+    for i, stage in enumerate(stages_list):
+        count = stage_counts[stage]
+        if stage == 'Booking Confirmed':
+            lost_count = 0
+        else:
+            lost_count = leads_qs.filter(current_stage=stage).count()
+        stage_funnel_data.append({
+            'stage': stage, 'count': count,
+            'lost_count': lost_count, 'lost_label': 'Stuck at This Stage',
+            'conv_original_pct': conv_pct(count),
+        })
 
     # ── 3. Channel Performance ──────────────────────────────────────────────
     channel_data = []
@@ -292,7 +314,8 @@ def dashboard_view(request):
         'projects':          projects,
         'selected_project':  selected_project,
         'kpis':              kpis,
-        'funnel_data':       funnel_data,
+        'tag_funnel_data':   tag_funnel_data,
+        'stage_funnel_data': stage_funnel_data,
         'funnel_sources':    funnel_sources,
         'channel_data':      channel_data,
         'project_data':      project_data,
