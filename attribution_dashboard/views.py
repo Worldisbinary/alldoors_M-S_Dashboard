@@ -92,34 +92,45 @@ def dashboard_view(request):
     def conv_pct(n):
         return round(n / leads_generated * 100, 1) if leads_generated > 0 else 0.0
 
+    # Each column carries both the Tag and the matching CRM Lead Stage(s), so the
+    # single funnel below shows Marketing -> Leads -> Sales Call -> Tag -> Stage
+    # exactly as described: RNR (not picked) -> No Tag / follow-up; Picked + not
+    # interested -> Cold; Picked + interested -> Potential (details shared) ->
+    # Hot (site visit) -> Super Hot (EOI/booking) -> Booking Confirmed.
     tag_funnel_data = [
         {
-            'stage': 'Leads Generated', 'count': leads_generated,
-            'lost_count': leads_generated - contacted, 'lost_label': 'RNR / Follow-up',
+            'stage': 'Leads Generated', 'stage_note': 'Not Yet Connected',
+            'count': leads_generated,
+            'lost_count': leads_generated - contacted, 'lost_label': 'No Tag — RNR / Follow-up',
             'conv_original_pct': conv_pct(leads_generated),
         },
         {
-            'stage': 'Contacted (Picked Up)', 'count': contacted,
+            'stage': 'Contacted (Picked Up)', 'stage_note': 'Sales Call Outcome',
+            'count': contacted,
             'lost_count': cold_count, 'lost_label': 'Cold — Not Interested',
             'conv_original_pct': conv_pct(contacted),
         },
         {
-            'stage': 'Potential (Details Shared)', 'count': potential_plus,
+            'stage': 'Potential', 'stage_note': 'Lead Registered / Initial Contacted',
+            'count': potential_plus,
             'lost_count': potential_plus - hot_plus, 'lost_label': 'Stalled — No Site Visit',
             'conv_original_pct': conv_pct(potential_plus),
         },
         {
-            'stage': 'Hot (Site Visit)', 'count': hot_plus,
+            'stage': 'Hot', 'stage_note': 'Site Visited',
+            'count': hot_plus,
             'lost_count': hot_plus - super_hot, 'lost_label': 'Stalled — No EOI/Booking',
             'conv_original_pct': conv_pct(hot_plus),
         },
         {
-            'stage': 'Super Hot (EOI/Booking)', 'count': super_hot,
+            'stage': 'Super Hot', 'stage_note': 'EOI Collected',
+            'count': super_hot,
             'lost_count': super_hot - bookings_count, 'lost_label': 'Pending — EOI Not Booked',
             'conv_original_pct': conv_pct(super_hot),
         },
         {
-            'stage': 'Booking Confirmed', 'count': bookings_count,
+            'stage': 'Booking Confirmed', 'stage_note': 'Booking Confirmed',
+            'count': bookings_count,
             'lost_count': 0, 'lost_label': '',
             'conv_original_pct': conv_pct(bookings_count),
         },
@@ -129,28 +140,6 @@ def dashboard_view(request):
         {'name': ch, 'count': leads_qs.filter(source=ch).count()}
         for ch in CHANNELS
     ]
-
-    # ── 2b. Lead Stage Funnel — raw CRM stages (Not Yet Connected → Booking) ─
-    stages_list = [
-        'Not Yet Connected', 'Lead Registered', 'Initial Contacted',
-        'Site Visited', 'EOI Collected', 'Booking Confirmed'
-    ]
-    stage_counts = {
-        stage: stage_history_qs.filter(stage=stage).values('lead').distinct().count()
-        for stage in stages_list
-    }
-    stage_funnel_data = []
-    for i, stage in enumerate(stages_list):
-        count = stage_counts[stage]
-        if stage == 'Booking Confirmed':
-            lost_count = 0
-        else:
-            lost_count = leads_qs.filter(current_stage=stage).count()
-        stage_funnel_data.append({
-            'stage': stage, 'count': count,
-            'lost_count': lost_count, 'lost_label': 'Stuck at This Stage',
-            'conv_original_pct': conv_pct(count),
-        })
 
     # ── 3. Channel Performance ──────────────────────────────────────────────
     channel_data = []
@@ -315,7 +304,6 @@ def dashboard_view(request):
         'selected_project':  selected_project,
         'kpis':              kpis,
         'tag_funnel_data':   tag_funnel_data,
-        'stage_funnel_data': stage_funnel_data,
         'funnel_sources':    funnel_sources,
         'channel_data':      channel_data,
         'project_data':      project_data,

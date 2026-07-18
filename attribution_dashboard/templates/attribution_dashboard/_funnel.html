@@ -7,6 +7,7 @@
         <!-- Name + conv% + count stacked -->
         <div class="stage-top">
             <span class="stage-name">{{ s.stage }}</span>
+            {% if s.stage_note %}<span class="stage-note">{{ s.stage_note }}</span>{% endif %}
             <span class="stage-conv">{{ s.conv_original_pct }}% of leads</span>
             <span class="stage-count" id="{{ prefix }}-cnt-{{ forloop.counter0 }}">0</span>
         </div>
