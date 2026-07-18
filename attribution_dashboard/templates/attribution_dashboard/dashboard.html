@@ -7,29 +7,32 @@
     <meta name="description" content="Real estate marketing attribution: CPL, CPQL, CAC, ROAS, CTR, CVR and conversion funnel analytics.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Patrick+Hand&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
         :root {
-            --bg:        #FAF7F2;
+            --bg:        #F5F6F8;
             --card:      #FFFFFF;
-            --border:    #E6DFD3;
-            --text:      #2D2926;
-            --muted:     #7E7568;
+            --border:    #E2E5EA;
+            --text:      #1F2430;
+            --muted:     #6B7280;
             /* Platform colours — vibrant & distinct */
-            --google:    #1A73E8;    /* Google blue */
-            --meta:      #7B2FBE;    /* Meta deep violet */
-            --linkedin:  #057642;    /* LinkedIn dark green */
+            --google:      #1A73E8;
+            --meta:        #7B2FBE;
+            --linkedin:    #057642;
+            --whatsapp:    #25D366;
+            --website:     #64748B;
+            --datacalling: #D97706;
             /* Accent palette for KPI cards */
             --amber:     #B45309;
             --teal:      #0F766E;
             --indigo:    #4338CA;
-            --rose:      #9F1239;    /* dark rose, not red */
+            --rose:      #9F1239;
             --grey:      #6B7280;
             --green:     #166534;
-            --font:      'Patrick Hand', cursive;
-            --display:   'Architects Daughter', cursive;
+            --font:      'Inter', -apple-system, sans-serif;
+            --display:   'Inter', -apple-system, sans-serif;
         }
 
         * { margin:0; padding:0; box-sizing:border-box; }
@@ -38,7 +41,7 @@
             background: var(--bg);
             color: var(--text);
             font-family: var(--font);
-            font-size: 1.05rem;
+            font-size: 0.98rem;
             -webkit-font-smoothing: antialiased;
             padding: 2.5rem 1.5rem;
             min-height: 100vh;
@@ -49,14 +52,22 @@
         /* ── Header ─────────────────────────────────────────────── */
         header {
             padding-bottom: 1rem;
-            border-bottom: 2px dashed var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+        .header-top {
+            display:flex; justify-content:space-between; align-items:center;
+            flex-wrap:wrap; gap:1rem;
         }
         header h1 {
             font-family: var(--display);
-            font-size: 2.6rem;
-            font-weight: 700;
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: -.02em;
             color: var(--text);
         }
+        .header-sub { margin-top:.4rem; color:var(--muted); font-size:.92rem; }
+        .project-filter { display:flex; align-items:center; gap:.5rem; }
+        .pf-label { font-size:.78rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
 
         /* ── KPI Grid ───────────────────────────────────────────── */
         .kpi-grid {
@@ -69,15 +80,15 @@
 
         .kpi {
             background: var(--card);
-            border: 1.5px solid var(--border);
-            border-radius: 16px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
             padding: 1.25rem 1.4rem 1.1rem;
-            box-shadow: 0 3px 12px rgba(45,41,38,.04);
+            box-shadow: 0 1px 3px rgba(15,23,42,.04);
             display: flex; flex-direction:column; gap:.15rem;
             position: relative; overflow:hidden;
             transition: transform .2s, box-shadow .2s;
         }
-        .kpi:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(45,41,38,.09); }
+        .kpi:hover { transform:translateY(-2px); box-shadow:0 8px 20px rgba(15,23,42,.08); }
         .kpi::after {
             content:'';
             position:absolute; bottom:0; left:0; right:0;
@@ -95,27 +106,27 @@
         .ac-rose    { --ac: var(--rose); }
 
         .kpi-label {
-            font-size: .78rem; font-weight:700;
-            text-transform:uppercase; letter-spacing:.07em;
+            font-size: .74rem; font-weight:700;
+            text-transform:uppercase; letter-spacing:.06em;
             color: var(--muted);
         }
         .kpi-desc {
-            font-size: .78rem; color: var(--muted); opacity:.85;
+            font-size: .76rem; color: var(--muted); opacity:.85;
             line-height:1.3; margin-bottom:.25rem;
         }
         .kpi-val {
             font-family: var(--display);
-            font-size: 1.9rem; font-weight:700;
+            font-size: 1.75rem; font-weight:700;
             color: var(--text);
         }
 
         /* ── Section card ───────────────────────────────────────── */
         .card {
             background: var(--card);
-            border: 1.5px solid var(--border);
-            border-radius: 20px;
+            border: 1px solid var(--border);
+            border-radius: 18px;
             padding: 1.75rem;
-            box-shadow: 0 5px 18px rgba(45,41,38,.03);
+            box-shadow: 0 1px 4px rgba(15,23,42,.03);
             display:flex; flex-direction:column; gap:1.5rem;
         }
         .card-hdr {
@@ -124,8 +135,21 @@
         }
         .card-title {
             font-family: var(--display);
-            font-size: 1.4rem; font-weight:600;
+            font-size: 1.2rem; font-weight:700;
         }
+
+        /* ── Marketing sources strip ────────────────────────────── */
+        .funnel-sources {
+            display:flex; flex-wrap:wrap; align-items:center; gap:.6rem;
+            padding-bottom:1rem; border-bottom:1px solid var(--border);
+        }
+        .fs-label { font-size:.78rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin-right:.3rem; }
+        .fs-chip {
+            display:flex; align-items:center; gap:.4rem;
+            background:var(--bg); border:1px solid var(--border);
+            border-radius:20px; padding:.3rem .7rem; font-size:.83rem; font-weight:600;
+        }
+        .fs-chip b { font-family:var(--display); font-weight:700; }
 
         /* ── Conversion Funnel ──────────────────────────────────── */
         .funnel-wrap {
@@ -149,17 +173,17 @@
         /* Top block: name + conv% + count */
         .stage-top {
             display:flex; flex-direction:column;
-            align-items:center; gap:.1rem;
+            align-items:center; gap:.15rem;
             height:95px; justify-content:flex-end;
         }
         .stage-name {
-            font-size:.88rem; font-weight:700;
-            color:var(--text); line-height:1.2; max-width:120px;
+            font-size:.85rem; font-weight:700;
+            color:var(--text); line-height:1.25; max-width:130px;
         }
         .stage-conv {
-            font-size:.75rem; font-weight:600;
+            font-size:.72rem; font-weight:600;
             color:var(--muted);
-            background:#F3F0EB;
+            background:var(--bg);
             border:1px solid var(--border);
             border-radius:20px; padding:.1rem .55rem;
         }
@@ -175,7 +199,7 @@
         }
         .stage-bar {
             width:26px;
-            background:linear-gradient(180deg,#B45309 0%,#FDE68A 100%);
+            background:linear-gradient(180deg,#4338CA 0%,#A5B4FC 100%);
             border-radius:6px 6px 0 0;
         }
         .stage-conn {
@@ -187,36 +211,38 @@
         /* Bottom block */
         .stage-bot {
             display:flex; flex-direction:column;
-            align-items:center; gap:.4rem;
+            align-items:center; gap:.35rem;
             height:80px; justify-content:flex-start; padding-top:.3rem;
         }
-        .trash-wrap { display:flex; flex-direction:column; align-items:center; gap:.05rem; opacity:.65; }
-        .trash-icon  { font-size:1.35rem; }
-        .trash-count { font-size:.78rem; color:var(--grey); }
+        .trash-wrap { display:flex; flex-direction:column; align-items:center; gap:.1rem; opacity:.8; }
+        .trash-label { font-size:.7rem; color:var(--grey); max-width:110px; line-height:1.2; }
+        .trash-count { font-size:.85rem; font-weight:700; color:var(--rose); }
         .success-box {
             display:flex; align-items:center; gap:.3rem;
-            font-size:.9rem; font-weight:700; color:var(--green);
+            font-size:.88rem; font-weight:700; color:var(--green);
+            background:#F0FDF4; border:1px solid #BBF7D0;
+            border-radius:20px; padding:.25rem .7rem;
         }
 
         /* ── Charts ─────────────────────────────────────────────── */
         .chart-controls { display:flex; gap:.4rem; align-items:center; flex-wrap:wrap; }
 
         .metric-sel {
-            font-family:var(--font); font-size:.92rem;
-            border:1.5px solid var(--border); border-radius:10px;
+            font-family:var(--font); font-size:.9rem;
+            border:1px solid var(--border); border-radius:10px;
             padding:.32rem .9rem; background:var(--bg);
             color:var(--text); cursor:pointer; outline:none;
             transition:border-color .2s;
             appearance:none; -webkit-appearance:none;
-            background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237E7568' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+            background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B7280' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
             background-repeat:no-repeat; background-position:right .7rem center;
             padding-right:2rem;
         }
-        .metric-sel:focus { border-color:var(--amber); }
+        .metric-sel:focus { border-color:var(--indigo); }
 
         .btn {
-            font-family:var(--font); font-size:.88rem;
-            border:1.5px solid var(--border); border-radius:10px;
+            font-family:var(--font); font-size:.85rem; font-weight:500;
+            border:1px solid var(--border); border-radius:10px;
             padding:.28rem .75rem; background:var(--bg);
             color:var(--muted); cursor:pointer; transition:all .2s;
         }
@@ -228,11 +254,11 @@
 
         /* ── Tables ─────────────────────────────────────────────── */
         .tbl-wrap { overflow-x:auto; }
-        table { width:100%; border-collapse:collapse; font-size:.97rem; }
+        table { width:100%; border-collapse:collapse; font-size:.92rem; }
         th {
             text-align:left; padding:.65rem .9rem;
-            font-size:.75rem; text-transform:uppercase;
-            letter-spacing:.06em; color:var(--muted);
+            font-size:.72rem; text-transform:uppercase;
+            letter-spacing:.05em; color:var(--muted);
             border-bottom:2px solid var(--border); white-space:nowrap;
         }
         td {
@@ -241,20 +267,27 @@
             vertical-align:middle;
         }
         tr:last-child td { border-bottom:none; }
-        tr:hover td { background:#F8F5F0; }
+        tr:hover td { background:#FAFBFC; }
 
-        .plat-chip { display:flex; align-items:center; gap:.55rem; font-weight:700; }
+        .plat-chip { display:flex; align-items:center; gap:.55rem; font-weight:600; }
         .dot {
             width:9px; height:9px; border-radius:50%; flex-shrink:0;
         }
-        .dot-g { background:var(--google);   box-shadow:0 0 5px var(--google); }
-        .dot-m { background:var(--meta);     box-shadow:0 0 5px var(--meta); }
-        .dot-l { background:var(--linkedin); box-shadow:0 0 5px var(--linkedin); }
+        .dot-g   { background:var(--google);      box-shadow:0 0 5px var(--google); }
+        .dot-m   { background:var(--meta);        box-shadow:0 0 5px var(--meta); }
+        .dot-l   { background:var(--linkedin);    box-shadow:0 0 5px var(--linkedin); }
+        .dot-w   { background:var(--whatsapp);    box-shadow:0 0 5px var(--whatsapp); }
+        .dot-web { background:var(--website);     box-shadow:0 0 5px var(--website); }
+        .dot-d   { background:var(--datacalling); box-shadow:0 0 5px var(--datacalling); }
 
         .tr  { text-align:right; }
-        .fw  { font-family:var(--display); }
+        .fw  { font-family:var(--display); font-weight:700; }
         .good { color:var(--green);  font-weight:700; }
         .mid  { color:var(--amber);  font-weight:700; }
+        .na   { color:var(--muted); }
+
+        .row-link { font-size:.8rem; font-weight:600; color:var(--indigo); text-decoration:none; white-space:nowrap; }
+        .row-link:hover { text-decoration:underline; }
 
         .stack { display:flex; flex-direction:column; gap:1.5rem; }
     </style>
@@ -264,7 +297,19 @@
 
     <!-- ── Header ── -->
     <header>
-        <h1>alldoors</h1>
+        <div class="header-top">
+            <h1>alldoors</h1>
+            <div class="project-filter">
+                <span class="pf-label">Project</span>
+                <select id="project-select" class="metric-sel" onchange="location.href = this.value ? ('?project=' + this.value) : location.pathname">
+                    <option value="">All Projects</option>
+                    {% for p in projects %}
+                    <option value="{{ p.id }}" {% if selected_project and selected_project.id == p.id %}selected{% endif %}>{{ p.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <p class="header-sub">Marketing &amp; Sales attribution — {% if selected_project %}{{ selected_project.name }}, {{ selected_project.location }}{% else %}All Projects{% endif %}</p>
     </header>
 
     <!-- ── KPI Grid ── -->
@@ -326,7 +371,7 @@
 
         <div class="kpi">
             <span class="kpi-label">Ad Spend</span>
-            <span class="kpi-desc">total media spend (Google + Meta + LinkedIn)</span>
+            <span class="kpi-desc">total media spend across all paid channels</span>
             <span class="kpi-val" id="v-spend">₹0</span>
         </div>
 
@@ -367,8 +412,19 @@
         <!-- ── Conversion Funnel ── -->
         <div class="card">
             <div class="card-hdr">
-                <span class="card-title">Conversion Funnel</span>
+                <span class="card-title">Sales Funnel — Marketing to Booking</span>
             </div>
+
+            <div class="funnel-sources">
+                <span class="fs-label">Marketing Sources</span>
+                {% for src in funnel_sources %}
+                <span class="fs-chip">
+                    <span class="dot {% if src.name == 'Google' %}dot-g{% elif src.name == 'Meta' %}dot-m{% elif src.name == 'LinkedIn' %}dot-l{% elif src.name == 'WhatsApp/SMS' %}dot-w{% elif src.name == 'Alldoors Website' %}dot-web{% else %}dot-d{% endif %}"></span>
+                    {{ src.name }} <b>{{ src.count }}</b>
+                </span>
+                {% endfor %}
+            </div>
+
             <div class="funnel-wrap" id="funnel-wrap">
                 <canvas id="funnel-canvas"></canvas>
 
@@ -378,7 +434,7 @@
                     <!-- Name + conv% + count stacked -->
                     <div class="stage-top">
                         <span class="stage-name">{{ s.stage }}</span>
-                        <span class="stage-conv">{{ s.conv_original_pct }}% of original</span>
+                        <span class="stage-conv">{{ s.conv_original_pct }}% of leads</span>
                         <span class="stage-count" id="cnt-{{ forloop.counter0 }}">0</span>
                     </div>
 
@@ -392,11 +448,11 @@
                     <div class="stage-bot">
                         {% if not forloop.last %}
                         <div class="trash-wrap" id="trash-{{ forloop.counter0 }}">
-                            <span class="trash-icon">🗑️</span>
+                            <span class="trash-label">{{ s.lost_label }}</span>
                             <span class="trash-count" id="tlost-{{ forloop.counter0 }}">0</span>
                         </div>
                         {% else %}
-                        <div class="success-box">🏆 {{ s.conv_original_pct }}% Conv.</div>
+                        <div class="success-box">{{ s.conv_original_pct }}% Won</div>
                         {% endif %}
                     </div>
                 </div>
@@ -408,11 +464,11 @@
         <div class="card">
             <div class="card-hdr">
                 <span class="card-title">Leads Acquired Over Time</span>
-                <div class="chart-controls">
-                    <button class="btn on" id="lb-all"    onclick="leadsSwitch('all')">All</button>
-                    <button class="btn"    id="lb-google"  onclick="leadsSwitch('google')">Google</button>
-                    <button class="btn"    id="lb-meta"    onclick="leadsSwitch('meta')">Meta</button>
-                    <button class="btn"    id="lb-li"      onclick="leadsSwitch('linkedin')">LinkedIn</button>
+                <div class="chart-controls" id="leads-filter">
+                    <button class="btn on" data-ch="all" onclick="leadsSwitch('all')">All</button>
+                    {% for ch in chart_data.channels %}
+                    <button class="btn" data-ch="{{ ch }}" onclick="leadsSwitch('{{ ch }}')">{{ ch }}</button>
+                    {% endfor %}
                 </div>
             </div>
             <div class="chart-box"><canvas id="leads-chart"></canvas></div>
@@ -426,7 +482,6 @@
                     <select class="metric-sel" id="metric-sel" onchange="metricSwitch(this.value)">
                         <optgroup label="Cost Efficiency">
                             <option value="cpl">CPL — Cost per Lead</option>
-                            <option value="cpql">CPQL — Cost per Qualified Lead</option>
                             <option value="cac">CAC — Cost per Customer Won</option>
                         </optgroup>
                         <optgroup label="Return">
@@ -444,10 +499,12 @@
                             <option value="bookings">Bookings (daily)</option>
                         </optgroup>
                     </select>
-                    <button class="btn on" id="mb-all"    onclick="metricPlatSwitch('all')">All</button>
-                    <button class="btn"    id="mb-google"  onclick="metricPlatSwitch('google')">Google</button>
-                    <button class="btn"    id="mb-meta"    onclick="metricPlatSwitch('meta')">Meta</button>
-                    <button class="btn"    id="mb-li"      onclick="metricPlatSwitch('linkedin')">LinkedIn</button>
+                    <div class="chart-controls" id="metric-filter">
+                        <button class="btn on" data-ch="all" onclick="metricPlatSwitch('all')">All</button>
+                        {% for ch in chart_data.channels %}
+                        <button class="btn" data-ch="{{ ch }}" onclick="metricPlatSwitch('{{ ch }}')">{{ ch }}</button>
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
             <div class="chart-box"><canvas id="metric-chart"></canvas></div>
@@ -480,21 +537,21 @@
                         <tr>
                             <td>
                                 <div class="plat-chip">
-                                    <span class="dot {% if c.platform == 'Google' %}dot-g{% elif c.platform == 'Meta' %}dot-m{% else %}dot-l{% endif %}"></span>
+                                    <span class="dot {% if c.platform == 'Google' %}dot-g{% elif c.platform == 'Meta' %}dot-m{% elif c.platform == 'LinkedIn' %}dot-l{% elif c.platform == 'WhatsApp/SMS' %}dot-w{% elif c.platform == 'Alldoors Website' %}dot-web{% else %}dot-d{% endif %}"></span>
                                     {{ c.platform }}
                                 </div>
                             </td>
                             <td class="fmt tr" data-v="{{ c.spend }}">₹–</td>
                             <td class="fmt tr" data-v="{{ c.revenue }}">₹–</td>
-                            <td class="tr fw {% if c.roas >= 3 %}good{% elif c.roas >= 1.5 %}mid{% endif %}">{{ c.roas|floatformat:2 }}x</td>
+                            <td class="tr fw {% if c.spend == 0 %}na{% elif c.roas >= 3 %}good{% elif c.roas >= 1.5 %}mid{% endif %}">{% if c.spend == 0 %}—{% else %}{{ c.roas|floatformat:2 }}x{% endif %}</td>
                             <td class="tr">{{ c.leads }}</td>
                             <td class="tr">{{ c.eois }}</td>
                             <td class="tr">{{ c.bookings }}</td>
                             <td class="fmt tr" data-v="{{ c.cpl }}">₹–</td>
                             <td class="fmt tr" data-v="{{ c.cpql }}">₹–</td>
                             <td class="fmt tr" data-v="{{ c.cac }}">₹–</td>
-                            <td class="tr">{{ c.ctr }}%</td>
-                            <td class="tr">{{ c.cvr }}%</td>
+                            <td class="tr {% if c.is_organic %}na{% endif %}">{% if c.is_organic %}—{% else %}{{ c.ctr }}%{% endif %}</td>
+                            <td class="tr {% if c.is_organic %}na{% endif %}">{% if c.is_organic %}—{% else %}{{ c.cvr }}%{% endif %}</td>
                             <td class="tr">{{ c.quality_rate }}%</td>
                         </tr>
                         {% endfor %}
@@ -506,7 +563,7 @@
         <!-- ── Project Performance Table ── -->
         <div class="card">
             <div class="card-hdr">
-                <span class="card-title">Project & Property Performance</span>
+                <span class="card-title">Project &amp; Property Performance</span>
             </div>
             <div class="tbl-wrap">
                 <table>
@@ -521,6 +578,7 @@
                         <th class="tr">CPL</th>
                         <th class="tr">CAC</th>
                         <th class="tr">Quality %</th>
+                        <th></th>
                     </tr></thead>
                     <tbody>
                         {% for p in project_data %}
@@ -535,6 +593,7 @@
                             <td class="fmt tr" data-v="{{ p.cpl }}">₹–</td>
                             <td class="fmt tr" data-v="{{ p.cac }}">₹–</td>
                             <td class="tr">{{ p.quality_rate }}%</td>
+                            <td class="tr"><a class="row-link" href="?project={{ p.id }}">View →</a></td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -554,15 +613,18 @@ const kpis      = JSON.parse(document.getElementById('j-kpis').textContent);
 const funnel    = JSON.parse(document.getElementById('j-funnel').textContent);
 const cd        = JSON.parse(document.getElementById('j-chart').textContent);
 
-Chart.defaults.font.family = "'Patrick Hand', cursive";
-Chart.defaults.font.size   = 14;
+Chart.defaults.font.family = "'Inter', sans-serif";
+Chart.defaults.font.size   = 12;
 
 /* ─ palette ─ */
 const PAL = {
-    google:   { line:'#1A73E8', fill:'rgba(26,115,232,0.07)' },
-    meta:     { line:'#7B2FBE', fill:'rgba(123,47,190,0.07)' },
-    linkedin: { line:'#057642', fill:'rgba(5,118,66,0.07)' },
-    total:    { line:'#B45309', fill:'rgba(180,83,9,0.06)' },
+    'Google':            { line:'#1A73E8', fill:'rgba(26,115,232,0.07)' },
+    'Meta':              { line:'#7B2FBE', fill:'rgba(123,47,190,0.07)' },
+    'LinkedIn':          { line:'#057642', fill:'rgba(5,118,66,0.07)' },
+    'WhatsApp/SMS':      { line:'#25D366', fill:'rgba(37,211,102,0.07)' },
+    'Alldoors Website':  { line:'#64748B', fill:'rgba(100,116,139,0.07)' },
+    'Data Calling Team': { line:'#D97706', fill:'rgba(217,119,6,0.07)' },
+    'Total':             { line:'#4338CA', fill:'rgba(67,56,202,0.06)' },
 };
 
 /* ─ currency ─ */
@@ -588,9 +650,9 @@ function count(el, end, dur=1400, dec=0, pre='', suf='', cur=false) {
 }
 
 /* ─ chart helpers ─ */
-function ds(label, data, key) {
-    const c = PAL[key] || PAL.total;
-    return { label, data, borderColor:c.line, backgroundColor:c.fill,
+function ds(name, data) {
+    const c = PAL[name] || PAL['Total'];
+    return { label:name, data, borderColor:c.line, backgroundColor:c.fill,
              borderWidth:2.5, pointRadius:0, pointHoverRadius:4, tension:.38, fill:true };
 }
 
@@ -600,63 +662,52 @@ function chartOpts(yFmt) {
         interaction:{ mode:'index', intersect:false },
         plugins:{
             legend:{ display:true, position:'top',
-                labels:{ color:'#2D2926', usePointStyle:true, padding:16,
-                    font:{ family:'Patrick Hand', size:13 } } },
+                labels:{ color:'#1F2430', usePointStyle:true, padding:16,
+                    font:{ family:'Inter', size:12 } } },
             tooltip:{
-                backgroundColor:'#FFF', titleColor:'#2D2926', bodyColor:'#2D2926',
-                borderColor:'#E6DFD3', borderWidth:1, padding:10,
-                titleFont:{ family:'Patrick Hand', size:13 },
-                bodyFont:{ family:'Patrick Hand', size:13 },
+                backgroundColor:'#FFF', titleColor:'#1F2430', bodyColor:'#1F2430',
+                borderColor:'#E2E5EA', borderWidth:1, padding:10,
+                titleFont:{ family:'Inter', size:12, weight:'600' },
+                bodyFont:{ family:'Inter', size:12 },
                 callbacks:{ label: ctx => (ctx.dataset.label||'') + ': ' + (yFmt?yFmt(ctx.parsed.y):ctx.parsed.y.toLocaleString()) }
             }
         },
         scales:{
-            x:{ grid:{ display:false }, ticks:{ color:'#7E7568', maxTicksLimit:10 } },
-            y:{ grid:{ color:'#E6DFD3' }, ticks:{ color:'#7E7568', callback:v=>yFmt?yFmt(v):v.toLocaleString() } }
+            x:{ grid:{ display:false }, ticks:{ color:'#6B7280', maxTicksLimit:10 } },
+            y:{ grid:{ color:'#E2E5EA' }, ticks:{ color:'#6B7280', callback:v=>yFmt?yFmt(v):v.toLocaleString() } }
         }
     };
 }
 
 /* ── LEADS CHART ── */
-let leadsChart, leadsPlat='all';
-function leadsDS(plat) {
-    if (plat==='all') return [ds('Google',cd.leads.Google,'google'), ds('Meta',cd.leads.Meta,'meta'), ds('LinkedIn',cd.leads.LinkedIn,'linkedin')];
-    const M={google:'Google',meta:'Meta',linkedin:'LinkedIn'};
-    return [ds(M[plat], cd.leads[M[plat]], plat)];
+let leadsChart;
+function leadsDS(ch) {
+    if (ch === 'all') return cd.channels.map(c => ds(c, cd.leads[c]));
+    return [ds(ch, cd.leads[ch])];
 }
 function initLeads() {
     leadsChart = new Chart(document.getElementById('leads-chart').getContext('2d'),
         { type:'line', data:{ labels:cd.dates, datasets:leadsDS('all') }, options:chartOpts(null) });
 }
-function leadsSwitch(p) {
-    leadsPlat = p;
-    leadsChart.data.datasets = leadsDS(p);
+function leadsSwitch(ch) {
+    leadsChart.data.datasets = leadsDS(ch);
     leadsChart.update();
-    ['all','google','meta','li'].forEach(k=>{
-        const b=document.getElementById('lb-'+k);
-        if(b) b.classList.toggle('on', (k==='li'?'linkedin':k)===p);
-    });
+    document.querySelectorAll('#leads-filter .btn').forEach(b => b.classList.toggle('on', b.dataset.ch === ch));
 }
 
 /* ── METRIC CHART ── */
 const METRIC_CFG = {
-    cpl:         { get:(p)=>cd['cpl_'+p],     isCur:true,  suf:'',  label:'CPL (₹)' },
-    cpql:        { get:(p)=>{ /* rolling from chart_data not stored, use cpl as proxy */
-                               const ss=cd.spend[cap(p)], ql=cd.leads[cap(p)];
-                               /* CPQL not in chartData, fall back to spend/leads *2 approx */
-                               return cd['cpl_'+p].map(v=>v*2);
-                             }, isCur:true, suf:'', label:'CPQL (₹, est.)' },
-    roas:        { get:(p)=>cd['roas_'+p],    isCur:false, suf:'x', label:'ROAS' },
-    cac:         { get:(p)=>cd['cac_'+p],     isCur:true,  suf:'',  label:'CAC (₹)' },
-    ctr:         { get:(p)=>cd['ctr_'+p],     isCur:false, suf:'%', label:'CTR (%)' },
-    cvr:         { get:(p)=>cd['cvr_'+p],     isCur:false, suf:'%', label:'CVR (%)' },
-    spend:       { get:(p)=>cd.spend[cap(p)], isCur:true,  suf:'',  label:'Ad Spend (₹)' },
-    revenue:     { get:(p)=>cd.revenue[cap(p)],isCur:true, suf:'',  label:'Revenue (₹)' },
-    clicks:      { get:(p)=>cd.clicks[cap(p)],isCur:false, suf:'',  label:'Clicks' },
-    impressions: { get:(p)=>cd.impressions[cap(p)], isCur:false, suf:'', label:'Impressions' },
-    bookings:    { get:(p)=>cd.bookings[cap(p)],isCur:false, suf:'', label:'Bookings' },
+    cpl:         { key:'cpl',         isCur:true,  suf:'',  label:'CPL (₹)' },
+    roas:        { key:'roas',        isCur:false, suf:'x', label:'ROAS' },
+    cac:         { key:'cac',         isCur:true,  suf:'',  label:'CAC (₹)' },
+    ctr:         { key:'ctr',         isCur:false, suf:'%', label:'CTR (%)' },
+    cvr:         { key:'cvr',         isCur:false, suf:'%', label:'CVR (%)' },
+    spend:       { key:'spend',       isCur:true,  suf:'',  label:'Ad Spend (₹)' },
+    revenue:     { key:'revenue',     isCur:true,  suf:'',  label:'Revenue (₹)' },
+    clicks:      { key:'clicks',      isCur:false, suf:'',  label:'Clicks' },
+    impressions: { key:'impressions', isCur:false, suf:'',  label:'Impressions' },
+    bookings:    { key:'bookings',    isCur:false, suf:'',  label:'Bookings' },
 };
-function cap(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
 
 let metricChart, curMetric='cpl', metricPlat='all';
 function metricGetYFmt(metric) {
@@ -666,15 +717,10 @@ function metricGetYFmt(metric) {
     if (cfg.suf==='x') return v=>v.toFixed(2)+'x';
     return null;
 }
-function metricGetDS(metric, plat) {
-    const cfg = METRIC_CFG[metric];
-    if (plat==='all') return [
-        ds('Google',   cfg.get('google'),   'google'),
-        ds('Meta',     cfg.get('meta'),     'meta'),
-        ds('LinkedIn', cfg.get('linkedin'), 'linkedin'),
-    ];
-    const M={google:'Google',meta:'Meta',linkedin:'LinkedIn'};
-    return [ds(M[plat], cfg.get(plat), plat)];
+function metricGetDS(metric, ch) {
+    const series = cd[METRIC_CFG[metric].key];
+    if (ch==='all') return cd.channels.map(c => ds(c, series[c]));
+    return [ds(ch, series[ch])];
 }
 function initMetric() {
     const yFmt = metricGetYFmt(curMetric);
@@ -690,14 +736,11 @@ function metricSwitch(metric) {
         (ctx.dataset.label||'')+': '+(yFmt?yFmt(ctx.parsed.y):ctx.parsed.y.toLocaleString());
     metricChart.update();
 }
-function metricPlatSwitch(plat) {
-    metricPlat = plat;
-    metricChart.data.datasets = metricGetDS(curMetric, plat);
+function metricPlatSwitch(ch) {
+    metricPlat = ch;
+    metricChart.data.datasets = metricGetDS(curMetric, ch);
     metricChart.update();
-    ['all','google','meta','li'].forEach(k=>{
-        const b=document.getElementById('mb-'+k);
-        if(b) b.classList.toggle('on', (k==='li'?'linkedin':k)===plat);
-    });
+    document.querySelectorAll('#metric-filter .btn').forEach(b => b.classList.toggle('on', b.dataset.ch === ch));
 }
 
 /* ── FUNNEL BARS ── */
@@ -726,11 +769,11 @@ function initFunnel() {
         return { x: cr.left - r.left + cr.width/2, barTop: cr.top - r.top + 95 };
     }).filter(Boolean);
 
-    const COLORS = ['#1A73E8','#7B2FBE','#057642'];
+    const COLORS = cd.channels.map(c => (PAL[c] || PAL['Total']).line);
     const dots = [];
 
     const spawn = () => {
-        const plat = Math.floor(Math.random()*3);
+        const plat = Math.floor(Math.random()*COLORS.length);
         dots.push({ x:cols[0].x+(Math.random()-.5)*18, y:cols[0].barTop,
                     plat, stage:0, vx:0, vy:0, falling:false, done:false });
     };
@@ -749,7 +792,8 @@ function initFunnel() {
                 if (Math.abs(dx) < 2) {
                     d.x = tx; d.stage = next;
                     const sd = funnel[d.stage];
-                    if (Math.random() < (sd ? sd.drop_pct/100 : 0) || d.stage >= cols.length-1) {
+                    const dropPct = sd && sd.count > 0 ? (sd.lost_count / (funnel[d.stage-1] ? funnel[d.stage-1].count : sd.count)) : 0;
+                    if (Math.random() < dropPct || d.stage >= cols.length-1) {
                         d.falling = true; d.vy = 0.4;
                     }
                 } else { d.x += dx*0.06; }

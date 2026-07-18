@@ -71,6 +71,14 @@ class Command(BaseCommand):
             ]
         }
 
+        # Organic / owned channels — no ad spend, leads come in directly (WhatsApp/SMS
+        # broadcasts, direct website enquiries, outbound calling on the existing database).
+        organic_channels = {
+            'WhatsApp/SMS':        {'leads_per_day_range': (2, 6)},
+            'Alldoors Website':    {'leads_per_day_range': (3, 8)},
+            'Data Calling Team':   {'leads_per_day_range': (4, 10)},
+        }
+
         # Funnel stages
         stages = [
             'Not Yet Connected',
@@ -80,6 +88,25 @@ class Command(BaseCommand):
             'EOI Collected',
             'Booking Confirmed'
         ]
+
+        def derive_call_and_tag(stage):
+            """Maps a CRM stage to a (call_status, tag) pair reflecting the real
+            Sales workflow: RNR (not picked) / Picked -> Cold (not interested) or
+            Potential (details shared) -> Hot (site visit) -> Super Hot (EOI/booking)."""
+            if stage == 'Not Yet Connected':
+                r = random.random()
+                if r < 0.55:
+                    return '', 'No Tag'            # not attempted yet
+                elif r < 0.80:
+                    return 'RNR', 'No Tag'          # attempted, not picked up
+                else:
+                    return 'Picked', 'Cold'         # picked up, not interested
+            elif stage in ('Lead Registered', 'Initial Contacted'):
+                return 'Picked', 'Potential'
+            elif stage == 'Site Visited':
+                return 'Picked', 'Hot'
+            else:  # EOI Collected, Booking Confirmed
+                return 'Picked', 'Super Hot'
 
         # Stop weights (corresponds to CRM's conversion ratios):
         # Not Yet Connected: ~40% drop-off
@@ -103,6 +130,53 @@ class Command(BaseCommand):
         current_date = start_date
 
         self.stdout.write(f"Generating data from {start_date} to {end_date}...")
+
+        def create_lead(source, campaign_name, created_date, proj):
+            nonlocal total_leads_created, total_bookings_created, total_gtv_created, total_revenue_created
+            name = f"{random.choice(first_names)} {random.choice(last_names)}"
+
+            current_stage = random.choices(stages, weights=stage_stop_weights, k=1)[0]
+            final_stage_idx = stages.index(current_stage)
+            call_status, tag = derive_call_and_tag(current_stage)
+
+            lead = Lead.objects.create(
+                name=name,
+                source=source,
+                campaign_name=campaign_name,
+                created_date=created_date,
+                current_stage=current_stage,
+                call_status=call_status,
+                tag=tag,
+                project=proj
+            )
+            total_leads_created += 1
+
+            lead_history_date = created_date
+            for s_idx in range(final_stage_idx + 1):
+                if s_idx > 0:
+                    delay = random.randint(0, 3)
+                    lead_history_date = min(lead_history_date + datetime.timedelta(days=delay), end_date)
+
+                LeadStageHistory.objects.create(
+                    lead=lead,
+                    stage=stages[s_idx],
+                    date_entered=lead_history_date
+                )
+
+            if current_stage == 'Booking Confirmed':
+                gtv = proj.avg_price * random.uniform(0.95, 1.05)
+                commission_rate = random.uniform(0.0224, 0.0228)
+                rev = gtv * commission_rate
+
+                Booking.objects.create(
+                    lead=lead,
+                    revenue_amount=rev,
+                    gtv_amount=gtv,
+                    booking_date=lead_history_date
+                )
+                total_bookings_created += 1
+                total_gtv_created += gtv
+                total_revenue_created += rev
 
         with transaction.atomic():
             while current_date <= end_date:
@@ -154,53 +228,14 @@ class Command(BaseCommand):
                             num_leads = max(0, num_leads + random.randint(-4, 4))
 
                             for _ in range(num_leads):
-                                name = f"{random.choice(first_names)} {random.choice(last_names)}"
-                                
-                                # Assign lead stage based on stop weights
-                                current_stage = random.choices(stages, weights=stage_stop_weights, k=1)[0]
-                                final_stage_idx = stages.index(current_stage)
+                                create_lead(platform, cp['name'], current_date, proj)
 
-                                lead = Lead.objects.create(
-                                    name=name,
-                                    source=platform,
-                                    campaign_name=cp['name'],
-                                    created_date=current_date,
-                                    current_stage=current_stage,
-                                    project=proj
-                                )
-                                total_leads_created += 1
-
-                                # Create stage histories
-                                lead_history_date = current_date
-                                for s_idx in range(final_stage_idx + 1):
-                                    if s_idx > 0:
-                                        delay = random.randint(0, 3)
-                                        lead_history_date = min(lead_history_date + datetime.timedelta(days=delay), end_date)
-                                    
-                                    LeadStageHistory.objects.create(
-                                        lead=lead,
-                                        stage=stages[s_idx],
-                                        date_entered=lead_history_date
-                                    )
-
-                                # Create Booking (Closure)
-                                if current_stage == 'Booking Confirmed':
-                                    # GTV = project price + some random variation (e.g. ±10%)
-                                    gtv = proj.avg_price * random.uniform(0.95, 1.05)
-                                    # Revenue = 2% - 2.5% of GTV (average real estate agency commission)
-                                    # Let's make average commission 2.27% to target ₹5.17 Cr revenue for ₹228 Cr GTV!
-                                    commission_rate = random.uniform(0.0224, 0.0228)
-                                    rev = gtv * commission_rate
-
-                                    Booking.objects.create(
-                                        lead=lead,
-                                        revenue_amount=rev,
-                                        gtv_amount=gtv,
-                                        booking_date=lead_history_date
-                                    )
-                                    total_bookings_created += 1
-                                    total_gtv_created += gtv
-                                    total_revenue_created += rev
+                # Organic / owned channels — no ad spend, leads generated directly per project
+                for source, cfg in organic_channels.items():
+                    for proj in projects:
+                        num_leads = random.randint(*cfg['leads_per_day_range'])
+                        for _ in range(num_leads):
+                            create_lead(source, source, current_date, proj)
 
                 current_date += datetime.timedelta(days=1)
 

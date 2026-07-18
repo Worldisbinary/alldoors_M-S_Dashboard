@@ -14,8 +14,11 @@ class Lead(models.Model):
         ('Google', 'Google'),
         ('Meta', 'Meta'),
         ('LinkedIn', 'LinkedIn'),
+        ('WhatsApp/SMS', 'WhatsApp/SMS'),
+        ('Alldoors Website', 'Alldoors Website'),
+        ('Data Calling Team', 'Data Calling Team'),
     ]
-    
+
     STAGE_CHOICES = [
         ('Not Yet Connected', 'Not Yet Connected'),
         ('Lead Registered', 'Lead Registered'),
@@ -25,11 +28,26 @@ class Lead(models.Model):
         ('Booking Confirmed', 'Booking Confirmed'),
     ]
 
+    CALL_STATUS_CHOICES = [
+        ('RNR', 'RNR — Not Picked'),
+        ('Picked', 'Picked Up'),
+    ]
+
+    TAG_CHOICES = [
+        ('No Tag', 'No Tag'),
+        ('Cold', 'Cold'),
+        ('Potential', 'Potential'),
+        ('Hot', 'Hot'),
+        ('Super Hot', 'Super Hot'),
+    ]
+
     name = models.CharField(max_length=255)
     source = models.CharField(max_length=50, choices=PLATFORM_CHOICES)
     campaign_name = models.CharField(max_length=255)
     created_date = models.DateField()
     current_stage = models.CharField(max_length=50, choices=STAGE_CHOICES, default='Not Yet Connected')
+    call_status = models.CharField(max_length=20, choices=CALL_STATUS_CHOICES, blank=True)
+    tag = models.CharField(max_length=20, choices=TAG_CHOICES, default='No Tag')
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='leads')
 
     def __str__(self):
