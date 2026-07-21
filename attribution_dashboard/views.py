@@ -45,56 +45,9 @@ def dashboard_view(request):
         bookings_qs       = bookings_qs.filter(lead__project=selected_project)
         stage_history_qs  = stage_history_qs.filter(lead__project=selected_project)
 
-    # ── 1. Global KPIs ─────────────────────────────────────────────────────
-    total_leads       = leads_qs.count()
-    total_spend       = campaigns_qs.aggregate(total=Sum('spend'))['total'] or 0
-    total_revenue     = bookings_qs.aggregate(total=Sum('revenue_amount'))['total'] or 0
-    bookings_count    = bookings_qs.count()
-    total_clicks      = campaigns_qs.aggregate(total=Sum('clicks'))['total'] or 0
-    total_impressions = campaigns_qs.aggregate(total=Sum('impressions'))['total'] or 0
-
-    qualified_leads = stage_history_qs.filter(
-        stage__in=QUALIFIED_STAGES
-    ).values('lead').distinct().count()
-
-    # PPT formulas
-    cpl          = float(total_spend) / total_leads          if total_leads > 0          else 0.0
-    cpql         = float(total_spend) / qualified_leads      if qualified_leads > 0      else 0.0
-    cac          = float(total_spend) / bookings_count       if bookings_count > 0       else 0.0
-    roas         = float(total_revenue) / float(total_spend) if total_spend > 0          else 0.0
-    quality_rate = (qualified_leads / total_leads * 100)     if total_leads > 0          else 0.0
-    overall_ctr  = (float(total_clicks) / float(total_impressions) * 100) if total_impressions > 0 else 0.0
-    overall_cvr  = (total_leads / float(total_clicks) * 100)              if total_clicks > 0     else 0.0
-
-    # Time to Close
-    closed_leads = bookings_qs.select_related('lead').all()
-    if closed_leads.exists():
-        deltas = [
-            (b.booking_date - b.lead.created_date).days
-            for b in closed_leads
-            if b.booking_date and b.lead.created_date
-        ]
-        avg_time_to_close = sum(deltas) / len(deltas) if deltas else 0.0
-    else:
-        avg_time_to_close = 0.0
-
-    kpis = {
-        'total_leads':        total_leads,
-        'total_spend':        float(total_spend),
-        'total_revenue':      float(total_revenue),
-        'bookings_count':     bookings_count,
-        'qualified_leads':    qualified_leads,
-        'total_clicks':       total_clicks,
-        'total_impressions':  total_impressions,
-        'cpl':                round(cpl, 2),
-        'cpql':               round(cpql, 2),
-        'cac':                round(cac, 2),
-        'roas':               round(roas, 2),
-        'quality_rate':       round(quality_rate, 1),
-        'overall_ctr':        round(overall_ctr, 2),
-        'overall_cvr':        round(overall_cvr, 2),
-        'avg_time_to_close':  round(avg_time_to_close, 1),
-    }
+    # ── 1. Volume base numbers (feed the funnels below) ─────────────────────
+    total_leads    = leads_qs.count()
+    bookings_count = bookings_qs.count()
 
     # ── 2. Sales Funnel — Marketing → Sales → Tag progression ───────────────
     # Leads arrive from Marketing, Sales calls them (RNR vs Picked). Picked splits
@@ -133,7 +86,7 @@ def dashboard_view(request):
         {
             'stage': 'Leads Generated', 'stage_note': 'Not Yet Connected',
             'count': leads_generated,
-            'lost_count': leads_generated - contacted, 'lost_label': 'No Tag — RNR / Follow-up',
+            'lost_count': leads_generated - contacted, 'lost_label': 'Not Contacted — RNR / Follow-up',
             'status_breakdown': status_breakdown('No Tag'),
             'conv_original_pct': conv_pct(leads_generated),
         },
@@ -173,6 +126,16 @@ def dashboard_view(request):
         },
     ]
 
+    # Two funnels, split from the same stage list:
+    # Marketing funnel — did we get through to the lead at all?
+    # Sales funnel — once contacted, how far did they progress (own % base).
+    marketing_funnel_data = tag_funnel_data[:2]
+    sales_funnel_data = []
+    for s in tag_funnel_data[1:]:
+        s = dict(s)
+        s['conv_original_pct'] = round(s['count'] / contacted * 100, 1) if contacted > 0 else 0.0
+        sales_funnel_data.append(s)
+
     funnel_sources = [
         {'name': ch, 'count': leads_qs.filter(source=ch).count()}
         for ch in CHANNELS
@@ -180,19 +143,26 @@ def dashboard_view(request):
 
     # Sankey-style "Tag -> Lead Status" flow: for each tag tier, the specific
     # statuses its leads currently carry — "these leads are in these statuses".
+    # Split the same way as the funnels: No Tag explains the not-contacted
+    # pool (Marketing), Cold/Potential/Hot/Super Hot explain contacted leads (Sales).
     TAG_FLOW_COLORS = {
         'No Tag': '#94A3B8', 'Cold': '#38BDF8', 'Potential': '#818CF8',
         'Hot': '#FB923C', 'Super Hot': '#F43F5E',
     }
-    tag_status_flow = []
-    for tag_name in ['No Tag', 'Cold', 'Potential', 'Hot', 'Super Hot']:
-        statuses = status_breakdown(tag_name)
-        total = sum(s['count'] for s in statuses)
-        if total > 0:
-            tag_status_flow.append({
-                'tag': tag_name, 'total': total,
-                'color': TAG_FLOW_COLORS[tag_name], 'statuses': statuses,
-            })
+    def build_status_flow(tag_names):
+        flow = []
+        for tag_name in tag_names:
+            statuses = status_breakdown(tag_name)
+            total = sum(s['count'] for s in statuses)
+            if total > 0:
+                flow.append({
+                    'tag': tag_name, 'total': total,
+                    'color': TAG_FLOW_COLORS[tag_name], 'statuses': statuses,
+                })
+        return flow
+
+    marketing_status_flow = build_status_flow(['No Tag'])
+    sales_status_flow = build_status_flow(['Cold', 'Potential', 'Hot', 'Super Hot'])
 
     # ── 3. Channel Performance ──────────────────────────────────────────────
     channel_data = []
@@ -348,24 +318,24 @@ def dashboard_view(request):
         'bookings':        bs,
         # Derived rolling 7-day ratios, keyed by channel name (+ 'Total')
         'cpl':  {k: rolling_ratio(ss[k], ls[k])           for k in all_keys},
-        'roas': {k: rolling_ratio(rs[k], ss[k])           for k in all_keys},
         'cac':  {k: rolling_ratio(ss[k], bs[k])           for k in all_keys},
         'ctr':  {k: rolling_ratio(cl[k], im[k], mult=100) for k in all_keys},
         'cvr':  {k: rolling_ratio(ls[k], cl[k], mult=100) for k in all_keys},
     }
 
     context = {
-        'projects':          projects,
-        'selected_project':  selected_project,
-        'range_presets':     RANGE_PRESETS,
-        'selected_range':    selected_range,
-        'selected_range_label': selected_range_label,
-        'kpis':              kpis,
-        'tag_funnel_data':   tag_funnel_data,
-        'funnel_sources':    funnel_sources,
-        'tag_status_flow':   tag_status_flow,
-        'channel_data':      channel_data,
-        'project_data':      project_data,
-        'chart_data':        chart_data,
+        'projects':               projects,
+        'selected_project':       selected_project,
+        'range_presets':          RANGE_PRESETS,
+        'selected_range':         selected_range,
+        'selected_range_label':   selected_range_label,
+        'marketing_funnel_data':  marketing_funnel_data,
+        'sales_funnel_data':      sales_funnel_data,
+        'funnel_sources':         funnel_sources,
+        'marketing_status_flow':  marketing_status_flow,
+        'sales_status_flow':      sales_status_flow,
+        'channel_data':           channel_data,
+        'project_data':           project_data,
+        'chart_data':             chart_data,
     }
     return render(request, 'attribution_dashboard/dashboard.html', context)

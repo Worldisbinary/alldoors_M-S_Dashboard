@@ -70,68 +70,6 @@
         .filter-group { display:flex; align-items:center; gap:.5rem; }
         .pf-label { font-size:.78rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
 
-        /* ── KPI section headers ────────────────────────────────── */
-        .kpi-section { display:flex; flex-direction:column; gap:.75rem; }
-        .kpi-section-title {
-            font-size:.78rem; font-weight:700; text-transform:uppercase;
-            letter-spacing:.07em; color:var(--muted);
-            display:flex; align-items:center; gap:.5rem;
-        }
-        .kpi-section-title::after {
-            content:''; flex:1; height:1px; background:var(--border);
-        }
-
-        /* ── KPI Grid ───────────────────────────────────────────── */
-        .kpi-grid {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 1rem;
-        }
-        @media(max-width:1200px){ .kpi-grid{ grid-template-columns:repeat(3,1fr); } }
-        @media(max-width:768px){  .kpi-grid{ grid-template-columns:repeat(2,1fr); } }
-
-        .kpi {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            padding: 1.25rem 1.4rem 1.1rem;
-            box-shadow: 0 1px 3px rgba(15,23,42,.04);
-            display: flex; flex-direction:column; gap:.15rem;
-            position: relative; overflow:hidden;
-            transition: transform .2s, box-shadow .2s;
-        }
-        .kpi:hover { transform:translateY(-2px); box-shadow:0 8px 20px rgba(15,23,42,.08); }
-        .kpi::after {
-            content:'';
-            position:absolute; bottom:0; left:0; right:0;
-            height:3px;
-            background: var(--ac, var(--border));
-            border-radius:0 0 14px 14px;
-        }
-        /* Accent colours per card */
-        .ac-blue    { --ac: var(--google); }
-        .ac-violet  { --ac: var(--meta); }
-        .ac-green   { --ac: var(--linkedin); }
-        .ac-amber   { --ac: var(--amber); }
-        .ac-teal    { --ac: var(--teal); }
-        .ac-indigo  { --ac: var(--indigo); }
-        .ac-rose    { --ac: var(--rose); }
-
-        .kpi-label {
-            font-size: .74rem; font-weight:700;
-            text-transform:uppercase; letter-spacing:.06em;
-            color: var(--muted);
-        }
-        .kpi-desc {
-            font-size: .76rem; color: var(--muted); opacity:.85;
-            line-height:1.3; margin-bottom:.25rem;
-        }
-        .kpi-val {
-            font-family: var(--display);
-            font-size: 1.75rem; font-weight:700;
-            color: var(--text);
-        }
-
         /* ── Section card ───────────────────────────────────────── */
         .card {
             background: var(--card);
@@ -378,112 +316,54 @@
         <p class="header-sub">Marketing &amp; Sales attribution — {% if selected_project %}{{ selected_project.name }}, {{ selected_project.location }}{% else %}All Projects{% endif %} · {{ selected_range_label }}</p>
     </header>
 
-    <!-- ── KPI Grid, grouped by category ── -->
-    <div class="kpi-section">
-        <span class="kpi-section-title">Volume</span>
-        <div class="kpi-grid">
-            <div class="kpi ac-blue">
-                <span class="kpi-label">Total Leads</span>
-                <span class="kpi-desc">enquiries captured across all channels</span>
-                <span class="kpi-val" id="v-leads">0</span>
-            </div>
-            <div class="kpi ac-indigo">
-                <span class="kpi-label">Qualified Leads</span>
-                <span class="kpi-desc">reached site visit, EOI or booking stage</span>
-                <span class="kpi-val" id="v-qual">0</span>
-            </div>
-            <div class="kpi ac-blue">
-                <span class="kpi-label">Closures</span>
-                <span class="kpi-desc">booking confirmations — customers won</span>
-                <span class="kpi-val" id="v-bookings">0</span>
-            </div>
-            <div class="kpi">
-                <span class="kpi-label">Total Clicks</span>
-                <span class="kpi-desc">ad clicks received across all platforms</span>
-                <span class="kpi-val" id="v-clicks">0</span>
-            </div>
-            <div class="kpi">
-                <span class="kpi-label">Impressions</span>
-                <span class="kpi-desc">total ad views across all platforms</span>
-                <span class="kpi-val" id="v-imps">0</span>
-            </div>
-        </div>
-    </div>
-
-    <div class="kpi-section">
-        <span class="kpi-section-title">Cost Efficiency</span>
-        <div class="kpi-grid">
-            <div class="kpi ac-violet">
-                <span class="kpi-label">CPL — Cost per Lead</span>
-                <span class="kpi-desc">spend ÷ total leads</span>
-                <span class="kpi-val" id="v-cpl">₹0</span>
-            </div>
-            <div class="kpi ac-teal">
-                <span class="kpi-label">CPQL — Cost per Qualified Lead</span>
-                <span class="kpi-desc">spend ÷ leads who visited site / gave EOI</span>
-                <span class="kpi-val" id="v-cpql">₹0</span>
-            </div>
-            <div class="kpi ac-amber">
-                <span class="kpi-label">CAC — Customer Acq. Cost</span>
-                <span class="kpi-desc">spend ÷ signed bookings</span>
-                <span class="kpi-val" id="v-cac">₹0</span>
-            </div>
-            <div class="kpi">
-                <span class="kpi-label">Ad Spend</span>
-                <span class="kpi-desc">total media spend across all paid channels</span>
-                <span class="kpi-val" id="v-spend">₹0</span>
-            </div>
-        </div>
-    </div>
-
-    <div class="kpi-section">
-        <span class="kpi-section-title">Return &amp; Revenue</span>
-        <div class="kpi-grid">
-            <div class="kpi ac-green">
-                <span class="kpi-label">ROAS</span>
-                <span class="kpi-desc">revenue ÷ ad spend — return per ₹ spent</span>
-                <span class="kpi-val" id="v-roas">0x</span>
-            </div>
-            <div class="kpi ac-green">
-                <span class="kpi-label">Revenue</span>
-                <span class="kpi-desc">brokerage commission earned from closures</span>
-                <span class="kpi-val" id="v-revenue">₹0</span>
-            </div>
-        </div>
-    </div>
-
-    <div class="kpi-section">
-        <span class="kpi-section-title">Engagement &amp; Quality</span>
-        <div class="kpi-grid">
-            <div class="kpi ac-indigo">
-                <span class="kpi-label">CTR — Click-Through Rate</span>
-                <span class="kpi-desc">clicks ÷ impressions — how often ads get clicked</span>
-                <span class="kpi-val" id="v-ctr">0%</span>
-            </div>
-            <div class="kpi ac-violet">
-                <span class="kpi-label">CVR — Click-to-Lead Rate</span>
-                <span class="kpi-desc">leads ÷ clicks — how often a click becomes a lead</span>
-                <span class="kpi-val" id="v-cvr">0%</span>
-            </div>
-            <div class="kpi ac-teal">
-                <span class="kpi-label">Quality Rate</span>
-                <span class="kpi-desc">qualified leads ÷ total — share of serious buyers</span>
-                <span class="kpi-val" id="v-qr">0%</span>
-            </div>
-            <div class="kpi ac-amber">
-                <span class="kpi-label">Time to Close</span>
-                <span class="kpi-desc">avg days from first inquiry to booking confirmed</span>
-                <span class="kpi-val" id="v-ttc">0 d</span>
-            </div>
-        </div>
-    </div>
-
     <div class="stack">
 
-        <!-- ── Sales Funnel: Marketing → Sales → Tag/Stage → Booking ── -->
+        <!-- ── Project & Property Performance (top of page — click a row to filter the whole dashboard) ── -->
         <div class="card">
             <div class="card-hdr">
-                <span class="card-title">Sales Funnel — Marketing to Booking</span>
+                <span class="card-title">Project &amp; Property Performance</span>
+                {% if selected_project %}<a class="row-link" href="?{% if selected_range != 'all' %}range={{ selected_range }}{% endif %}">✕ Clear filter — show all projects</a>{% endif %}
+            </div>
+            <div class="tbl-wrap">
+                <table>
+                    <thead><tr>
+                        <th>Project</th>
+                        <th>Location</th>
+                        <th class="tr">Leads</th>
+                        <th class="tr">Closures</th>
+                        <th class="tr">Spend</th>
+                        <th class="tr">Revenue</th>
+                        <th class="tr">ROAS</th>
+                        <th class="tr">CPL</th>
+                        <th class="tr">CAC</th>
+                        <th class="tr">Quality %</th>
+                        <th></th>
+                    </tr></thead>
+                    <tbody>
+                        {% for p in project_data %}
+                        <tr {% if selected_project and selected_project.id == p.id %}style="background:#FAFBFC;"{% endif %}>
+                            <td style="font-weight:700;">{{ p.name }}{% if selected_project and selected_project.id == p.id %} <span class="fs-chip" style="padding:.15rem .5rem; font-size:.7rem;">Active</span>{% endif %}</td>
+                            <td>{{ p.location }}</td>
+                            <td class="tr">{{ p.leads }}</td>
+                            <td class="tr">{{ p.bookings }}</td>
+                            <td class="fmt tr" data-v="{{ p.spend }}">₹–</td>
+                            <td class="fmt tr" data-v="{{ p.revenue }}">₹–</td>
+                            <td class="tr fw {% if p.roas >= 3 %}good{% elif p.roas >= 1.5 %}mid{% endif %}">{{ p.roas|floatformat:2 }}x</td>
+                            <td class="fmt tr" data-v="{{ p.cpl }}">₹–</td>
+                            <td class="fmt tr" data-v="{{ p.cac }}">₹–</td>
+                            <td class="tr">{{ p.quality_rate }}%</td>
+                            <td class="tr">{% if selected_project and selected_project.id == p.id %}<a class="row-link" href="?{% if selected_range != 'all' %}range={{ selected_range }}{% endif %}">Clear ✕</a>{% else %}<a class="row-link" href="?project={{ p.id }}{% if selected_range != 'all' %}&amp;range={{ selected_range }}{% endif %}">View →</a>{% endif %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ── Marketing Funnel: Leads → Contacted vs Not Contacted (RNR) ── -->
+        <div class="card">
+            <div class="card-hdr">
+                <span class="card-title">Marketing Funnel — Contacted vs Not Contacted (RNR)</span>
                 {% include "attribution_dashboard/_filters.html" %}
             </div>
 
@@ -497,12 +377,48 @@
                 {% endfor %}
             </div>
 
-            {% include "attribution_dashboard/_funnel.html" with funnel_list=tag_funnel_data prefix="funnel" %}
+            {% include "attribution_dashboard/_funnel.html" with funnel_list=marketing_funnel_data prefix="mkt" final_label="Contacted" %}
+
+            {% if marketing_status_flow %}
+            <div class="status-flow-section">
+                <span class="sf-label">↓ Not-Contacted Breakdown — why these leads weren't picked up</span>
+                <div class="status-flow">
+                    {% for grp in marketing_status_flow %}
+                    <div class="sf-group">
+                        <div class="sf-tag-node" style="--tag-color: {{ grp.color }}">
+                            <span class="sf-tag-name">{{ grp.tag }}</span>
+                            <span class="sf-tag-count">{{ grp.total }}</span>
+                        </div>
+                        <div class="sf-canvas-wrap">
+                            <canvas class="sf-flow-canvas"></canvas>
+                        </div>
+                        <div class="sf-statuses">
+                            {% for s in grp.statuses %}
+                            <div class="sf-status-chip">
+                                <span class="sf-status-name">{{ s.name }}</span>
+                                <span class="sf-status-count" data-count="{{ s.count }}">0</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- ── Sales Funnel: Contacted → Cold/Potential/Hot/Super Hot → Booking ── -->
+        <div class="card">
+            <div class="card-hdr">
+                <span class="card-title">Sales Funnel — Once Contacted</span>
+            </div>
+
+            {% include "attribution_dashboard/_funnel.html" with funnel_list=sales_funnel_data prefix="sales" pct_label="of contacted" %}
 
             <div class="status-flow-section">
                 <span class="sf-label">↓ Lead Status Breakdown — these leads are in these statuses</span>
                 <div class="status-flow">
-                    {% for grp in tag_status_flow %}
+                    {% for grp in sales_status_flow %}
                     <div class="sf-group">
                         <div class="sf-tag-node" style="--tag-color: {{ grp.color }}">
                             <span class="sf-tag-name">{{ grp.tag }}</span>
@@ -561,7 +477,6 @@
                             <option value="cac">CAC — Cost per Customer Won</option>
                         </optgroup>
                         <optgroup label="Return">
-                            <option value="roas">ROAS — Return on Ad Spend</option>
                             <option value="revenue">Revenue (daily)</option>
                         </optgroup>
                         <optgroup label="Ad Engagement">
@@ -646,70 +561,30 @@
             </div>
         </div>
 
-        <!-- ── Project Performance Table ── -->
-        <div class="card">
-            <div class="card-hdr">
-                <span class="card-title">Project &amp; Property Performance</span>
-            </div>
-            <div class="tbl-wrap">
-                <table>
-                    <thead><tr>
-                        <th>Project</th>
-                        <th>Location</th>
-                        <th class="tr">Leads</th>
-                        <th class="tr">Closures</th>
-                        <th class="tr">Spend</th>
-                        <th class="tr">Revenue</th>
-                        <th class="tr">ROAS</th>
-                        <th class="tr">CPL</th>
-                        <th class="tr">CAC</th>
-                        <th class="tr">Quality %</th>
-                        <th></th>
-                    </tr></thead>
-                    <tbody>
-                        {% for p in project_data %}
-                        <tr>
-                            <td style="font-weight:700;">{{ p.name }}</td>
-                            <td>{{ p.location }}</td>
-                            <td class="tr">{{ p.leads }}</td>
-                            <td class="tr">{{ p.bookings }}</td>
-                            <td class="fmt tr" data-v="{{ p.spend }}">₹–</td>
-                            <td class="fmt tr" data-v="{{ p.revenue }}">₹–</td>
-                            <td class="tr fw {% if p.roas >= 3 %}good{% elif p.roas >= 1.5 %}mid{% endif %}">{{ p.roas|floatformat:2 }}x</td>
-                            <td class="fmt tr" data-v="{{ p.cpl }}">₹–</td>
-                            <td class="fmt tr" data-v="{{ p.cac }}">₹–</td>
-                            <td class="tr">{{ p.quality_rate }}%</td>
-                            <td class="tr"><a class="row-link" href="?project={{ p.id }}">View →</a></td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
     </div>
 </div>
 
-{{ kpis|json_script:"j-kpis" }}
-{{ tag_funnel_data|json_script:"j-funnel" }}
+{{ marketing_funnel_data|json_script:"j-mkt-funnel" }}
+{{ sales_funnel_data|json_script:"j-sales-funnel" }}
 {{ chart_data|json_script:"j-chart" }}
 
 <script>
-const kpis   = JSON.parse(document.getElementById('j-kpis').textContent);
-const funnel = JSON.parse(document.getElementById('j-funnel').textContent);
-const cd     = JSON.parse(document.getElementById('j-chart').textContent);
+const mktFunnel   = JSON.parse(document.getElementById('j-mkt-funnel').textContent);
+const salesFunnel = JSON.parse(document.getElementById('j-sales-funnel').textContent);
+const cd          = JSON.parse(document.getElementById('j-chart').textContent);
 
 Chart.defaults.font.family = "'Inter', sans-serif";
 Chart.defaults.font.size   = 12;
 
-/* ─ project + timeline filter bar (repeated per card) ─ */
+/* ─ timeline filter bar (repeated per card) — project filtering happens by
+   clicking a row in the Project & Property Performance list, so the current
+   ?project= (if any) is simply carried forward from the URL. ─ */
 function navFilter(el) {
     const bar = el.closest('.filter-bar');
-    const project = bar.querySelector('.filter-project').value;
     const range = bar.querySelector('.filter-range').value;
-    const params = new URLSearchParams();
-    if (project) params.set('project', project);
+    const params = new URLSearchParams(location.search);
     if (range && range !== 'all') params.set('range', range);
+    else params.delete('range');
     const qs = params.toString();
     location.href = qs ? ('?' + qs) : location.pathname;
 }
@@ -832,7 +707,6 @@ function leadsSwitch(ch) {
 /* ── METRIC CHART ── */
 const METRIC_CFG = {
     cpl:         { key:'cpl',         isCur:true,  suf:'',  label:'CPL (₹)' },
-    roas:        { key:'roas',        isCur:false, suf:'x', label:'ROAS' },
     cac:         { key:'cac',         isCur:true,  suf:'',  label:'CAC (₹)' },
     ctr:         { key:'ctr',         isCur:false, suf:'%', label:'CTR (%)' },
     cvr:         { key:'cvr',         isCur:false, suf:'%', label:'CVR (%)' },
@@ -993,27 +867,14 @@ window.addEventListener('resize', drawStatusFlow);
 /* ── INIT ── */
 window.addEventListener('DOMContentLoaded', ()=>{
     const D = 1400;
-    count(document.getElementById('v-leads'),    kpis.total_leads,       D);
-    count(document.getElementById('v-spend'),    kpis.total_spend,       D, 0,'','',true);
-    count(document.getElementById('v-revenue'),  kpis.total_revenue,     D, 0,'','',true);
-    count(document.getElementById('v-bookings'), kpis.bookings_count,    D);
-    count(document.getElementById('v-qual'),     kpis.qualified_leads,   D);
-    count(document.getElementById('v-cpl'),      kpis.cpl,               D, 0,'','',true);
-    count(document.getElementById('v-cpql'),     kpis.cpql,              D, 0,'','',true);
-    count(document.getElementById('v-cac'),      kpis.cac,               D, 0,'','',true);
-    count(document.getElementById('v-roas'),     kpis.roas,              D, 2,'','x');
-    count(document.getElementById('v-qr'),       kpis.quality_rate,      D, 1,'','%');
-    count(document.getElementById('v-ctr'),      kpis.overall_ctr,       D, 2,'','%');
-    count(document.getElementById('v-cvr'),      kpis.overall_cvr,       D, 2,'','%');
-    count(document.getElementById('v-ttc'),      kpis.avg_time_to_close, D, 1,'','  days avg');
-    count(document.getElementById('v-clicks'),   kpis.total_clicks,      D);
-    count(document.getElementById('v-imps'),     kpis.total_impressions, D);
 
-    funnel.forEach((f,i)=>{
-        const cel = document.getElementById('funnel-cnt-'+i);
-        if (cel) count(cel, f.count, D);
-        const tel = document.getElementById('funnel-tlost-'+i);
-        if (tel) setTimeout(()=>count(tel, f.lost_count, D-200), 200);
+    [['mkt', mktFunnel], ['sales', salesFunnel]].forEach(([prefix, funnel])=>{
+        funnel.forEach((f,i)=>{
+            const cel = document.getElementById(prefix+'-cnt-'+i);
+            if (cel) count(cel, f.count, D);
+            const tel = document.getElementById(prefix+'-tlost-'+i);
+            if (tel) setTimeout(()=>count(tel, f.lost_count, D-200), 200);
+        });
     });
 
     document.querySelectorAll('.sf-status-count').forEach(el=>{
@@ -1025,8 +886,10 @@ window.addEventListener('DOMContentLoaded', ()=>{
         el.textContent = fmtINR(parseFloat(el.getAttribute('data-v')));
     });
 
-    initBars('funnel', funnel);
-    initFunnel('funnel', funnel);
+    initBars('mkt', mktFunnel);
+    initFunnel('mkt', mktFunnel);
+    initBars('sales', salesFunnel);
+    initFunnel('sales', salesFunnel);
     initLeads();
     initMetric();
     drawStatusFlow();
