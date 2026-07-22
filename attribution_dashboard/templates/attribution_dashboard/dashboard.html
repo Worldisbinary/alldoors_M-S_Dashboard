@@ -69,6 +69,25 @@
         .filter-bar { display:flex; align-items:center; gap:1rem; flex-wrap:wrap; }
         .filter-group { display:flex; align-items:center; gap:.5rem; }
         .pf-label { font-size:.78rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+        .header-actions { display:flex; align-items:center; gap:1rem; flex-wrap:wrap; }
+        .btn-import {
+            font-family:var(--display); font-size:.85rem; font-weight:700;
+            background:var(--indigo); color:#FFF; text-decoration:none;
+            border-radius:10px; padding:.5rem 1rem; white-space:nowrap;
+            transition:opacity .2s;
+        }
+        .btn-import:hover { opacity:.88; }
+
+        /* ── KPI strip ──────────────────────────────────────────── */
+        .kpi-strip { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:1rem; }
+        .kpi-tile {
+            background:var(--bg); border:1px solid var(--border); border-radius:14px;
+            padding:1rem 1.15rem; display:flex; flex-direction:column; gap:.35rem;
+        }
+        .kpi-label { font-size:.72rem; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:700; }
+        .kpi-value { font-family:var(--display); font-size:1.55rem; font-weight:800; color:var(--text); }
+        .kpi-note { font-size:.72rem; color:var(--muted); }
+        .metric-sub { display:block; font-size:.72rem; color:var(--muted); font-weight:500; margin-top:.1rem; }
 
         /* ── Section card ───────────────────────────────────────── */
         .card {
@@ -296,6 +315,7 @@
         .fw  { font-family:var(--display); font-weight:700; }
         .good { color:var(--green);  font-weight:700; }
         .mid  { color:var(--amber);  font-weight:700; }
+        .bad  { color:var(--rose);   font-weight:700; }
         .na   { color:var(--muted); }
 
         .row-link { font-size:.8rem; font-weight:600; color:var(--indigo); text-decoration:none; white-space:nowrap; }
@@ -311,12 +331,49 @@
     <header>
         <div class="header-top">
             <h1>alldoors</h1>
-            {% include "attribution_dashboard/_filters.html" %}
+            <div class="header-actions">
+                {% include "attribution_dashboard/_filters.html" %}
+                <a class="btn-import" href="{% url 'import_data' %}">⇪ Import Data</a>
+            </div>
         </div>
         <p class="header-sub">Marketing &amp; Sales attribution — {% if selected_project %}{{ selected_project.name }}, {{ selected_project.location }}{% else %}All Projects{% endif %} · {{ selected_range_label }}</p>
     </header>
 
     <div class="stack">
+
+        <!-- ── Economic Summary KPI strip ── -->
+        <div class="card">
+            <div class="card-hdr">
+                <span class="card-title">Economic Summary</span>
+                <span class="kpi-note">Expected Pipeline Value &amp; Blended ROAS use Bayesian-shrunk conversion rates on leads still open in the funnel — see the Project table below for a per-project breakdown.</span>
+            </div>
+            <div class="kpi-strip">
+                <div class="kpi-tile">
+                    <span class="kpi-label">Total Leads</span>
+                    <span class="kpi-value" id="kpi-leads">0</span>
+                </div>
+                <div class="kpi-tile">
+                    <span class="kpi-label">Ad Spend</span>
+                    <span class="kpi-value" id="kpi-spend">₹0</span>
+                </div>
+                <div class="kpi-tile">
+                    <span class="kpi-label">Realized Revenue</span>
+                    <span class="kpi-value" id="kpi-revenue">₹0</span>
+                </div>
+                <div class="kpi-tile">
+                    <span class="kpi-label">Expected Pipeline Value</span>
+                    <span class="kpi-value" id="kpi-ev">₹0</span>
+                </div>
+                <div class="kpi-tile">
+                    <span class="kpi-label">Blended ROAS</span>
+                    <span class="kpi-value" id="kpi-roas">0x</span>
+                </div>
+                <div class="kpi-tile">
+                    <span class="kpi-label">Bookings</span>
+                    <span class="kpi-value" id="kpi-bookings">0</span>
+                </div>
+            </div>
+        </div>
 
         <!-- ── Project & Property Performance (top of page — click a row to filter the whole dashboard) ── -->
         <div class="card">
@@ -336,7 +393,9 @@
                         <th class="tr">ROAS</th>
                         <th class="tr">CPL</th>
                         <th class="tr">CAC</th>
-                        <th class="tr">Quality %</th>
+                        <th class="tr">Quality % (Bayesian)</th>
+                        <th class="tr">Expected Value</th>
+                        <th class="tr">Projected ROAS</th>
                         <th></th>
                     </tr></thead>
                     <tbody>
@@ -351,7 +410,9 @@
                             <td class="tr fw {% if p.roas >= 3 %}good{% elif p.roas >= 1.5 %}mid{% endif %}">{{ p.roas|floatformat:2 }}x</td>
                             <td class="fmt tr" data-v="{{ p.cpl }}">₹–</td>
                             <td class="fmt tr" data-v="{{ p.cac }}">₹–</td>
-                            <td class="tr">{{ p.quality_rate }}%</td>
+                            <td class="tr">{{ p.bqs }}%<span class="metric-sub">raw {{ p.quality_rate }}%</span></td>
+                            <td class="fmt tr" data-v="{{ p.expected_value }}">₹–</td>
+                            <td class="tr fw {% if p.projected_roas >= 3 %}good{% elif p.projected_roas >= 1.5 %}mid{% endif %}">{{ p.projected_roas|floatformat:2 }}x</td>
                             <td class="tr">{% if selected_project and selected_project.id == p.id %}<a class="row-link" href="?{% if selected_range != 'all' %}range={{ selected_range }}{% endif %}">Clear ✕</a>{% else %}<a class="row-link" href="?project={{ p.id }}{% if selected_range != 'all' %}&amp;range={{ selected_range }}{% endif %}">View →</a>{% endif %}</td>
                         </tr>
                         {% endfor %}
@@ -360,10 +421,10 @@
             </div>
         </div>
 
-        <!-- ── Marketing Funnel: Leads → Contacted vs Not Contacted (RNR) ── -->
+        <!-- ── Sales Funnel: Contacted → Cold/Potential/Hot/Super Hot → Booking ── -->
         <div class="card">
             <div class="card-hdr">
-                <span class="card-title">Marketing Funnel — Contacted vs Not Contacted (RNR)</span>
+                <span class="card-title">Sales Funnel — Once Contacted</span>
                 {% include "attribution_dashboard/_filters.html" %}
             </div>
 
@@ -375,42 +436,6 @@
                     {{ src.name }} <b>{{ src.count }}</b>
                 </span>
                 {% endfor %}
-            </div>
-
-            {% include "attribution_dashboard/_funnel.html" with funnel_list=marketing_funnel_data prefix="mkt" final_label="Contacted" %}
-
-            {% if marketing_status_flow %}
-            <div class="status-flow-section">
-                <span class="sf-label">↓ Not-Contacted Breakdown — why these leads weren't picked up</span>
-                <div class="status-flow">
-                    {% for grp in marketing_status_flow %}
-                    <div class="sf-group">
-                        <div class="sf-tag-node" style="--tag-color: {{ grp.color }}">
-                            <span class="sf-tag-name">{{ grp.tag }}</span>
-                            <span class="sf-tag-count">{{ grp.total }}</span>
-                        </div>
-                        <div class="sf-canvas-wrap">
-                            <canvas class="sf-flow-canvas"></canvas>
-                        </div>
-                        <div class="sf-statuses">
-                            {% for s in grp.statuses %}
-                            <div class="sf-status-chip">
-                                <span class="sf-status-name">{{ s.name }}</span>
-                                <span class="sf-status-count" data-count="{{ s.count }}">0</span>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
-        </div>
-
-        <!-- ── Sales Funnel: Contacted → Cold/Potential/Hot/Super Hot → Booking ── -->
-        <div class="card">
-            <div class="card-hdr">
-                <span class="card-title">Sales Funnel — Once Contacted</span>
             </div>
 
             {% include "attribution_dashboard/_funnel.html" with funnel_list=sales_funnel_data prefix="sales" pct_label="of contacted" %}
@@ -531,7 +556,7 @@
                         <th class="tr">CAC</th>
                         <th class="tr">CTR</th>
                         <th class="tr">CVR</th>
-                        <th class="tr">Quality %</th>
+                        <th class="tr">Quality % (Bayesian)</th>
                     </tr></thead>
                     <tbody>
                         {% for c in channel_data %}
@@ -553,7 +578,7 @@
                             <td class="fmt tr" data-v="{{ c.cac }}">₹–</td>
                             <td class="tr {% if c.is_organic %}na{% endif %}">{% if c.is_organic %}—{% else %}{{ c.ctr }}%{% endif %}</td>
                             <td class="tr {% if c.is_organic %}na{% endif %}">{% if c.is_organic %}—{% else %}{{ c.cvr }}%{% endif %}</td>
-                            <td class="tr">{{ c.quality_rate }}%</td>
+                            <td class="tr">{{ c.bqs }}%<span class="metric-sub">raw {{ c.quality_rate }}%</span></td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -561,17 +586,77 @@
             </div>
         </div>
 
+        <!-- ── Campaign Performance Table (from Campaign Summary imports) ── -->
+        <div class="card">
+            <div class="card-hdr">
+                <span class="card-title">Campaign Performance</span>
+                <span class="kpi-note">Each campaign's most recently imported period{% if selected_project %} · filtered to {{ selected_project.name }}{% endif %}. Marginal Cost/Utility compare this period to the previous imported one — needs 2+ uploads per campaign to appear. Opportunity Cost = spend that underperformed this scope's most efficient campaign.</span>
+            </div>
+            {% if campaign_data %}
+            <div class="tbl-wrap">
+                <table>
+                    <thead><tr>
+                        <th>Campaign</th>
+                        <th>Project</th>
+                        <th class="tr">Spend</th>
+                        <th class="tr">Leads</th>
+                        <th class="tr">CPL</th>
+                        <th class="tr">Potential</th>
+                        <th class="tr">Hot/Super Hot</th>
+                        <th class="tr">Site Visits</th>
+                        <th class="tr">Quality %</th>
+                        <th class="tr">Site Visit %</th>
+                        <th class="tr">High-Intent %</th>
+                        <th class="tr">CPQL</th>
+                        <th class="tr">Marginal Utility</th>
+                        <th class="tr">Marginal Cost</th>
+                        <th class="tr">Opportunity Cost</th>
+                    </tr></thead>
+                    <tbody>
+                        {% for c in campaign_data %}
+                        <tr>
+                            <td>
+                                <div class="plat-chip">
+                                    <span class="dot {% if c.platform == 'Google' %}dot-g{% elif c.platform == 'Meta' %}dot-m{% elif c.platform == 'LinkedIn' %}dot-l{% endif %}"></span>
+                                    {{ c.campaign_name }}
+                                </div>
+                                <span class="metric-sub">{{ c.period_start|date:"d M" }} – {{ c.period_end|date:"d M Y" }}</span>
+                            </td>
+                            <td>{{ c.project }}</td>
+                            <td class="fmt tr" data-v="{{ c.spend }}">₹–</td>
+                            <td class="tr">{{ c.leads }}</td>
+                            <td class="fmt tr" data-v="{{ c.cpl }}">₹–</td>
+                            <td class="tr">{{ c.potential }}</td>
+                            <td class="tr">{{ c.hot_super_hot }}</td>
+                            <td class="tr">{{ c.site_visits }}</td>
+                            <td class="tr">{{ c.quality_rate_pct }}%</td>
+                            <td class="tr">{{ c.site_visit_rate_pct }}%</td>
+                            <td class="tr">{{ c.high_intent_rate_pct }}%</td>
+                            <td class="fmt tr" data-v="{{ c.cpql }}">₹–</td>
+                            <td class="tr fw {% if c.marginal_utility == None %}na{% elif c.marginal_utility > 0 %}good{% else %}bad{% endif %}">{% if c.marginal_utility == None %}—{% else %}{{ c.marginal_utility|floatformat:2 }}{% endif %}</td>
+                            <td class="tr {% if c.marginal_cost == None %}na{% endif %}">{% if c.marginal_cost == None %}—{% else %}<span class="fmt" data-v="{{ c.marginal_cost }}">₹–</span>{% endif %}</td>
+                            <td class="fmt tr {% if c.opportunity_cost > 0 %}bad{% endif %}" data-v="{{ c.opportunity_cost }}">₹–</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="card-sub" style="color:var(--muted); font-size:.85rem;">No Campaign Summary data imported yet — use the Campaign Summary tab on the Import page to upload a per-campaign spreadsheet (Platform, Campaign, Spend, Leads, Potential, Hot/Super Hot, Site Visits).</p>
+            {% endif %}
+        </div>
+
     </div>
 </div>
 
-{{ marketing_funnel_data|json_script:"j-mkt-funnel" }}
 {{ sales_funnel_data|json_script:"j-sales-funnel" }}
 {{ chart_data|json_script:"j-chart" }}
+{{ economic_summary|json_script:"j-econ" }}
 
 <script>
-const mktFunnel   = JSON.parse(document.getElementById('j-mkt-funnel').textContent);
 const salesFunnel = JSON.parse(document.getElementById('j-sales-funnel').textContent);
 const cd          = JSON.parse(document.getElementById('j-chart').textContent);
+const econ        = JSON.parse(document.getElementById('j-econ').textContent);
 
 Chart.defaults.font.family = "'Inter', sans-serif";
 Chart.defaults.font.size   = 12;
@@ -868,7 +953,7 @@ window.addEventListener('resize', drawStatusFlow);
 window.addEventListener('DOMContentLoaded', ()=>{
     const D = 1400;
 
-    [['mkt', mktFunnel], ['sales', salesFunnel]].forEach(([prefix, funnel])=>{
+    [['sales', salesFunnel]].forEach(([prefix, funnel])=>{
         funnel.forEach((f,i)=>{
             const cel = document.getElementById(prefix+'-cnt-'+i);
             if (cel) count(cel, f.count, D);
@@ -886,8 +971,22 @@ window.addEventListener('DOMContentLoaded', ()=>{
         el.textContent = fmtINR(parseFloat(el.getAttribute('data-v')));
     });
 
-    initBars('mkt', mktFunnel);
-    initFunnel('mkt', mktFunnel);
+    /* Economic Summary KPI strip */
+    count(document.getElementById('kpi-leads'), econ.total_leads, D);
+    count(document.getElementById('kpi-bookings'), econ.bookings_count, D);
+    (function(){
+        const t0 = performance.now();
+        function anim(ts){
+            const p = Math.min((ts-t0)/D, 1);
+            document.getElementById('kpi-spend').textContent   = fmtINR(econ.total_spend * p);
+            document.getElementById('kpi-revenue').textContent = fmtINR(econ.total_revenue * p);
+            document.getElementById('kpi-ev').textContent      = fmtINR(econ.expected_value * p);
+            document.getElementById('kpi-roas').textContent    = (econ.blended_roas * p).toFixed(2) + 'x';
+            if (p < 1) requestAnimationFrame(anim);
+        }
+        requestAnimationFrame(anim);
+    })();
+
     initBars('sales', salesFunnel);
     initFunnel('sales', salesFunnel);
     initLeads();

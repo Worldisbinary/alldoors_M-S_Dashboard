@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>alldoors — Import Data</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg:        #F5F6F8;
+            --card:      #FFFFFF;
+            --border:    #E2E5EA;
+            --text:      #1F2430;
+            --muted:     #6B7280;
+            --indigo:    #4338CA;
+            --green:     #166534;
+            --rose:      #9F1239;
+            --amber:     #B45309;
+            --font:      'Inter', -apple-system, sans-serif;
+            --display:   'Inter', -apple-system, sans-serif;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            background: var(--bg); color: var(--text); font-family: var(--font);
+            font-size: 0.98rem; -webkit-font-smoothing: antialiased;
+            padding: 2.5rem 1.5rem; min-height: 100vh;
+        }
+        .wrap { max-width:1100px; margin:0 auto; display:flex; flex-direction:column; gap:1.5rem; }
+
+        header { padding-bottom: 1rem; border-bottom: 1px solid var(--border); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; }
+        header h1 { font-family: var(--display); font-size: 1.8rem; font-weight: 800; letter-spacing: -.02em; }
+        .header-sub { margin-top:.3rem; color:var(--muted); font-size:.9rem; }
+        .back-link { font-size:.85rem; font-weight:600; color:var(--indigo); text-decoration:none; }
+        .back-link:hover { text-decoration:underline; }
+
+        .card {
+            background: var(--card); border: 1px solid var(--border); border-radius: 18px;
+            padding: 1.75rem; box-shadow: 0 1px 4px rgba(15,23,42,.03);
+            display:flex; flex-direction:column; gap:1.25rem;
+        }
+        .card-title { font-family: var(--display); font-size: 1.1rem; font-weight:700; }
+        .card-sub { color:var(--muted); font-size:.85rem; line-height:1.5; }
+
+        .intro-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:1rem; }
+        .intro-item { background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:1rem; display:flex; flex-direction:column; gap:.3rem; }
+        .intro-item b { font-size:.92rem; }
+        .intro-item span { font-size:.82rem; color:var(--muted); line-height:1.45; }
+
+        .banner { border-radius:12px; padding:.85rem 1.1rem; font-size:.88rem; font-weight:600; }
+        .banner.success { background:#F0FDF4; border:1px solid #BBF7D0; color:var(--green); }
+        .banner.error   { background:#FEF2F2; border:1px solid #FECACA; color:var(--rose); }
+        .banner.warning { background:#FFFBEB; border:1px solid #FDE68A; color:var(--amber); }
+
+        .tabs { display:flex; gap:.5rem; flex-wrap:wrap; }
+        .btn {
+            font-family: var(--font); font-size:.85rem; font-weight:600;
+            border:1px solid var(--border); border-radius:10px; padding:.4rem .9rem;
+            background:var(--bg); color:var(--muted); cursor:pointer; transition:all .2s;
+        }
+        .btn:hover, .btn.on { background:var(--text); color:#FFF; border-color:var(--text); }
+        .btn-primary { background:var(--indigo); color:#FFF; border-color:var(--indigo); }
+        .btn-primary:hover { opacity:.9; background:var(--indigo); }
+
+        .panel { display:none; flex-direction:column; gap:1.25rem; }
+        .panel.on { display:flex; }
+
+        .tbl-wrap { overflow-x:auto; }
+        table { width:100%; border-collapse:collapse; font-size:.86rem; }
+        th { text-align:left; padding:.55rem .8rem; font-size:.7rem; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); border-bottom:2px solid var(--border); white-space:nowrap; }
+        td { padding:.6rem .8rem; border-bottom:1px solid var(--border); vertical-align:middle; }
+        tr:last-child td { border-bottom:none; }
+        code { background:var(--bg); border:1px solid var(--border); border-radius:5px; padding:.1rem .4rem; font-size:.82em; }
+
+        form.upload-form { display:flex; flex-direction:column; gap:1rem; }
+        .field-row { display:flex; gap:1rem; flex-wrap:wrap; }
+        .field { display:flex; flex-direction:column; gap:.35rem; flex:1; min-width:200px; }
+        .field label { font-size:.78rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
+        .field select, .field input[type=file], .field input[type=date] {
+            font-family:var(--font); font-size:.9rem; border:1px solid var(--border); border-radius:10px;
+            padding:.5rem .7rem; background:var(--bg); color:var(--text);
+        }
+        .field-hint { font-size:.76rem; color:var(--muted); }
+        .template-link { font-size:.82rem; font-weight:600; color:var(--indigo); text-decoration:none; }
+        .template-link:hover { text-decoration:underline; }
+
+        .stack { display:flex; flex-direction:column; gap:1.5rem; }
+    </style>
+</head>
+<body>
+<div class="wrap">
+
+    <header>
+        <div>
+            <h1>alldoors — Import Data</h1>
+            <p class="header-sub">Load real leads, ad spend, and bookings into the dashboard.</p>
+        </div>
+        <a class="back-link" href="{% url 'dashboard' %}">← Back to Dashboard</a>
+    </header>
+
+    {% if messages %}
+    {% for message in messages %}
+    <div class="banner {{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+    {% endif %}
+
+    <div class="stack">
+
+        <div class="card">
+            <span class="card-title">Four ways to bring in data</span>
+            <p class="card-sub">Every tab below accepts a plain CSV or an Excel (.xlsx) file — upload your working spreadsheet as-is, no need to save as CSV first.</p>
+            <div class="intro-grid">
+                <div class="intro-item">
+                    <b>Leads</b>
+                    <span>Upload a CRM export of your leads — name, source, campaign, stage/status, project.</span>
+                </div>
+                <div class="intro-item">
+                    <b>Ad Spend</b>
+                    <span>Upload a Google Ads / Meta Ads / LinkedIn campaign performance export as-is — pick the platform and project once, the file supplies the rest.</span>
+                </div>
+                <div class="intro-item">
+                    <b>Bookings</b>
+                    <span>Upload closed deals (revenue &amp; GTV) to match against leads already in the system — this is what powers realized ROAS.</span>
+                </div>
+                <div class="intro-item">
+                    <b>Campaign Summary</b>
+                    <span>Upload a per-campaign performance sheet (Spend, Leads, Potential, Hot/Super Hot, Site Visits) — powers the Campaign Performance table, including Opportunity Cost and marginal metrics.</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="tabs">
+                <button type="button" class="btn on" data-tab="leads" onclick="switchTab('leads')">Leads</button>
+                <button type="button" class="btn" data-tab="ad_spend" onclick="switchTab('ad_spend')">Ad Spend</button>
+                <button type="button" class="btn" data-tab="bookings" onclick="switchTab('bookings')">Bookings</button>
+                <button type="button" class="btn" data-tab="campaign_summary" onclick="switchTab('campaign_summary')">Campaign Summary</button>
+            </div>
+
+            <!-- ── Leads panel ── -->
+            <div class="panel on" data-panel="leads">
+                <p class="card-sub">
+                    Expected columns (accepted alternate headers in brackets):
+                    <code>name</code>, <code>source</code> <em>[platform, channel]</em>, <code>campaign_name</code> <em>[campaign]</em>,
+                    <code>created_date</code> <em>[date]</em>, <code>current_stage</code> <em>[stage]</em>, <code>lead_status</code> <em>[status]</em>,
+                    <code>project</code> <em>[property]</em> (optional — falls back to the Project selected below).
+                    <code>source</code> must be one of Google / Meta / LinkedIn / WhatsApp/SMS / Alldoors Website / Data Calling Team.
+                </p>
+                <a class="template-link" href="{% url 'import_template' 'leads' %}">↓ Download CSV template</a>
+                <form class="upload-form" method="post" enctype="multipart/form-data" action="{% url 'import_data' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="type" value="leads">
+                    <div class="field-row">
+                        <div class="field">
+                            <label>Default Project</label>
+                            {{ lead_form.project }}
+                            <span class="field-hint">Used for rows without a Project column.</span>
+                        </div>
+                        <div class="field">
+                            <label>CSV File</label>
+                            {{ lead_form.file }}
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="align-self:flex-start;">Import Leads</button>
+                </form>
+            </div>
+
+            <!-- ── Ad Spend panel ── -->
+            <div class="panel" data-panel="ad_spend">
+                <p class="card-sub">
+                    Expected columns: <code>campaign_name</code> <em>[campaign]</em>, <code>date</code> <em>[day, reporting starts]</em>,
+                    <code>impressions</code> <em>[impr.]</em>, <code>clicks</code> <em>[link clicks]</em>, <code>spend</code> <em>[cost, amount spent (INR)]</em>.
+                    This matches Google Ads' and Meta Ads Manager's default report exports — download from Campaigns → Reports (Google)
+                    or Ads Reporting → Export (Meta) and upload with no edits needed.
+                </p>
+                <a class="template-link" href="{% url 'import_template' 'ad_spend' %}">↓ Download CSV template</a>
+                <form class="upload-form" method="post" enctype="multipart/form-data" action="{% url 'import_data' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="type" value="ad_spend">
+                    <div class="field-row">
+                        <div class="field">
+                            <label>Platform</label>
+                            {{ ad_spend_form.platform }}
+                        </div>
+                        <div class="field">
+                            <label>Project</label>
+                            {{ ad_spend_form.project }}
+                        </div>
+                        <div class="field">
+                            <label>CSV File</label>
+                            {{ ad_spend_form.file }}
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="align-self:flex-start;">Import Ad Spend</button>
+                </form>
+            </div>
+
+            <!-- ── Bookings panel ── -->
+            <div class="panel" data-panel="bookings">
+                <p class="card-sub">
+                    Expected columns: <code>lead_name</code> <em>[name]</em>, <code>created_date</code> <em>[lead created date]</em> (to match the lead),
+                    <code>booking_date</code> <em>[date]</em>, <code>revenue_amount</code> <em>[revenue, commission]</em>, <code>gtv_amount</code> <em>[gtv]</em>.
+                    Rows are matched to an existing lead by name + created date; unmatched rows are skipped and listed below.
+                </p>
+                <a class="template-link" href="{% url 'import_template' 'bookings' %}">↓ Download CSV template</a>
+                <form class="upload-form" method="post" enctype="multipart/form-data" action="{% url 'import_data' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="type" value="bookings">
+                    <div class="field-row">
+                        <div class="field">
+                            <label>Project</label>
+                            {{ booking_form.project }}
+                            <span class="field-hint">Narrows lead-matching if names repeat across projects.</span>
+                        </div>
+                        <div class="field">
+                            <label>CSV File</label>
+                            {{ booking_form.file }}
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="align-self:flex-start;">Import Bookings</button>
+                </form>
+            </div>
+
+            <!-- ── Campaign Summary panel ── -->
+            <div class="panel" data-panel="campaign_summary">
+                <p class="card-sub">
+                    Matches a per-campaign performance sheet like Google Sheets/Excel "Combined Campaign Data" exports —
+                    one row per campaign for a date range. Expected columns: <code>Platform</code> <em>[Google Ads, Meta Ads, LinkedIn Ads all accepted]</em>,
+                    <code>Campaign</code>, <code>Status</code> (optional), <code>Spend</code>, <code>Leads</code>, <code>Potential</code>,
+                    <code>Hot/Super Hot</code>, <code>Site Visits</code>. Rate columns (Quality %, Site Visit %, High-Intent %, CPL, Cost per Quality Lead)
+                    are recomputed automatically and can be left in the file — they're ignored on import.
+                    Campaign names that match a project name are auto-attributed to that project.
+                    Upload the same campaign again next period to unlock Marginal Cost/Utility trend metrics.
+                    Multi-tab workbooks are handled automatically — title rows, note rows and multiple sheets (e.g. Combined Data /
+                    Meta Ads Data / Google Ads Data) are fine, the matching header row and sheet are found for you, and any
+                    "Total" footer row is skipped.
+                </p>
+                <a class="template-link" href="{% url 'import_template' 'campaign_summary' %}">↓ Download CSV template</a>
+                <form class="upload-form" method="post" enctype="multipart/form-data" action="{% url 'import_data' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="type" value="campaign_summary">
+                    <div class="field-row">
+                        <div class="field">
+                            <label>Period Start</label>
+                            {{ campaign_summary_form.period_start }}
+                        </div>
+                        <div class="field">
+                            <label>Period End</label>
+                            {{ campaign_summary_form.period_end }}
+                        </div>
+                        <div class="field">
+                            <label>Platform (if not in file)</label>
+                            {{ campaign_summary_form.platform }}
+                            <span class="field-hint">Only needed for single-platform tabs with no Platform column.</span>
+                        </div>
+                        <div class="field">
+                            <label>Fallback Project</label>
+                            {{ campaign_summary_form.project }}
+                            <span class="field-hint">Used when a Campaign name doesn't match a project name.</span>
+                        </div>
+                        <div class="field">
+                            <label>File</label>
+                            {{ campaign_summary_form.file }}
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="align-self:flex-start;">Import Campaign Summary</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <span class="card-title">Import History</span>
+            <div class="tbl-wrap">
+                <table>
+                    <thead><tr>
+                        <th>Type</th><th>File</th><th>Project</th><th>Platform</th>
+                        <th>Created</th><th>Skipped</th><th>Failed</th><th>When</th>
+                    </tr></thead>
+                    <tbody>
+                        {% for imp in import_history %}
+                        <tr title="{{ imp.error_detail|default:'' }}">
+                            <td>{{ imp.get_import_type_display }}</td>
+                            <td>{{ imp.file_name }}</td>
+                            <td>{{ imp.project.name|default:"—" }}</td>
+                            <td>{{ imp.platform|default:"—" }}</td>
+                            <td>{{ imp.rows_created }}</td>
+                            <td>{{ imp.rows_skipped }}</td>
+                            <td>{{ imp.rows_failed }}</td>
+                            <td>{{ imp.created_at|date:"d M Y, H:i" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="8" style="color:var(--muted);">No imports yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+function switchTab(name) {
+    document.querySelectorAll('.tabs .btn').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
+    document.querySelectorAll('.panel').forEach(p => p.classList.toggle('on', p.dataset.panel === name));
+}
+</script>
+</body>
+</html>

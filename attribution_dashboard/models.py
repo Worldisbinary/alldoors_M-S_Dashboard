@@ -127,3 +127,62 @@ class Booking(models.Model):
 
     def __str__(self):
         return f"Booking for {self.lead.name} ({self.lead.project.name}) - Revenue: Rs. {self.revenue_amount}, GTV: Rs. {self.gtv_amount}"
+
+
+class CampaignSummary(models.Model):
+    """A period snapshot of a single campaign's performance, as reported by
+    the ad platform + a lead-outcome overlay (Potential/Hot-Super Hot/Site
+    Visits) — the granularity real campaign spreadsheets are usually kept
+    at. Deliberately separate from Lead/AdCampaign: those model individual,
+    dated leads and daily spend; this models an aggregate snapshot for a
+    date range, with no per-lead detail. Kept as its own table so importing
+    a spreadsheet like this never fabricates fake Lead rows."""
+    PLATFORM_CHOICES = [
+        ('Google', 'Google'),
+        ('Meta', 'Meta'),
+        ('LinkedIn', 'LinkedIn'),
+    ]
+
+    platform = models.CharField(max_length=50, choices=PLATFORM_CHOICES)
+    campaign_name = models.CharField(max_length=255)
+    project = models.ForeignKey(Project, null=True, blank=True, on_delete=models.SET_NULL)
+    status = models.CharField(max_length=50, blank=True)
+    period_start = models.DateField()
+    period_end = models.DateField()
+    spend = models.DecimalField(max_digits=12, decimal_places=2)
+    leads = models.IntegerField(default=0)
+    potential = models.IntegerField(default=0)       # "quality lead" tier in this sheet's own terms
+    hot_super_hot = models.IntegerField(default=0)
+    site_visits = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-period_end', '-created_at']
+
+    def __str__(self):
+        return f"{self.campaign_name} ({self.platform}) {self.period_start}..{self.period_end}"
+
+
+class DataImport(models.Model):
+    IMPORT_TYPES = [
+        ('leads', 'Leads'),
+        ('ad_spend', 'Ad Spend'),
+        ('bookings', 'Bookings'),
+        ('campaign_summary', 'Campaign Summary'),
+    ]
+
+    import_type = models.CharField(max_length=20, choices=IMPORT_TYPES)
+    file_name = models.CharField(max_length=255)
+    project = models.ForeignKey(Project, null=True, blank=True, on_delete=models.SET_NULL)
+    platform = models.CharField(max_length=50, blank=True)
+    rows_created = models.IntegerField(default=0)
+    rows_skipped = models.IntegerField(default=0)
+    rows_failed = models.IntegerField(default=0)
+    error_detail = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.get_import_type_display()} import — {self.file_name} ({self.created_at:%Y-%m-%d %H:%M})"
